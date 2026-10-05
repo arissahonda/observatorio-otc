@@ -11,19 +11,36 @@ A plataforma utiliza um pipeline automatizado de extração, transformação, en
 ---
 
 ### 🏗️ Diagrama de Fluxo de Dados
-  [Fontes de Dados]              [Camada de Ingestão / Staging]         [Camada de Consolidação]          [Camada de Entrega]
-┌────────────────────────┐      ┌──────────────────────────────┐       ┌────────────────────────┐      ┌─────────────────────────┐
-│ Banco de Planejamento  │ ───► │ Snapshots de Planejamento    │ ────► │ Consolidador Completo  │ ───► │                         |
-|Banco Relacional / GIS  │      |                              |       |                        |      |                         |
-└────────────────────────┘      └──────────────────────────────┘       └────────────────────────┘      │  (Camada da Aplicação)  │
-┌────────────────────────┐      ┌──────────────────────────────┐       ┌────────────────────────┐      │                         │
-│ Banco de Bilhetagem    │ ───► │ Snapshots de Carregamento    │ ────► │ Consolidador           │ ───► │  - Esquema Consolidado  │
-└────────────────────────┘      └──────────────────────────────┘       │ Simplificado           │      │  - Camada REST / Visual │
-                                                                       └────────────────────────┘      |                         |
-┌────────────────────────┐      ┌──────────────────────────────┐       ┌────────────────────────┐      |                         |
-│ Banco Espacial (GIS)   │ ───► │ Snapshots de Geometrias      │ ────► │ Consolidador por       │ ───► │                         |
-└────────────────────────┘      └──────────────────────────────┘       │ Faixa Horária (30 min) │      |                         |
-                                                                       └────────────────────────┘      └─────────────────────────┘   
+```mermaid
+graph LR
+    subgraph F[Fontes de Dados]
+        F1[Banco de Planejamento]
+        F2[Banco de Bilhetagem]
+        F3[Banco Espacial - GIS]
+    end
+
+    subgraph I[Camada de Ingestão / Staging]
+        I1[Snapshots de Planejamento]
+        I2[Snapshots de Carregamento]
+        I3[Snapshots de Geometrias]
+    end
+
+    subgraph C[Camada de Consolidação]
+        C1[Consolidador Completo]
+        C2[Consolidador Simplificado]
+        C3[Consolidador por Faixa Horária - 30 min]
+    end
+
+    subgraph E[Camada de Entrega - Aplicação]
+        E1[(Banco Relacional / GIS)]
+        E2[- Esquema Consolidado<br/>- Camada REST / Visual]
+    end
+
+    F1 --> I1 --> C1 --> E1
+    F2 --> I2 --> C2 --> E1
+    F3 --> I3 --> C3 --> E1
+    E1 --- E2
+```  
 Este repositório contém a arquitetura da plataforma de dados, pipeline de ETL e dashboards para análise de indicadores de mobilidade e transporte público.
 
 ### 🔄 Etapas do Processamento de Dados
