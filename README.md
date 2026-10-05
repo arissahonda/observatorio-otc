@@ -13,48 +13,48 @@ A plataforma utiliza um pipeline automatizado de extração, transformação, en
 ### 🏗️ Diagrama de Fluxo de Dados
 ```mermaid
 graph LR
-    subgraph F[Fontes de Dados]
+    subgraph F[1. Fontes de Dados]
         F1[Banco de Planejamento]
         F2[Banco de Bilhetagem]
         F3[Banco Espacial - GIS]
     end
 
-    subgraph I[Camada de Ingestão / Staging]
+    subgraph I[2. Camada de Ingestão / Staging]
         I1[Snapshots de Planejamento]
         I2[Snapshots de Carregamento]
         I3[Snapshots de Geometrias]
+        
+        %% Nó unificador para organizar o fluxo visual das setas
+        STG((Base Integrada de Snapshots))
     end
 
-    subgraph C[Camada de Consolidação]
+    subgraph C[3. Camada de Consolidação]
         C1[Consolidador Completo]
         C2[Consolidador Simplificado]
         C3[Consolidador por Faixa Horária - 30 min]
     end
 
-    subgraph E[Camada de Entrega - Aplicação]
+    subgraph E[4. Camada de Entrega - Aplicação]
         E1[(Banco Relacional / GIS)]
         E2[- Esquema Consolidado<br/>- Camada REST / Visual]
     end
 
-    %% Conexões de Ingestão
+    %% 1. Ingestão para os Snapshots
     F1 --> I1
     F2 --> I2
     F3 --> I3
 
-    %% Todos os Snapshots alimentam todos os Consolidadores
-    I1 --> C1
-    I1 --> C2
-    I1 --> C3
+    %% 2. Snapshots convergem para a Base Integrada
+    I1 --> STG
+    I2 --> STG
+    I3 --> STG
 
-    I2 --> C1
-    I2 --> C2
-    I2 --> C3
+    %% 3. Base Integrada alimenta os Consolidadores
+    STG --> C1
+    STG --> C2
+    STG --> C3
 
-    I3 --> C1
-    I3 --> C2
-    I3 --> C3
-
-    %% Entrega
+    %% 4. Consolidadores entregam para o Banco de Aplicação
     C1 --> E1
     C2 --> E1
     C3 --> E1
