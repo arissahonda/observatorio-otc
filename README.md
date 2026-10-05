@@ -1,19 +1,67 @@
-# 🚌 Observatório do Transporte Público Coletivo (OTPC)
+Este repositório contém a arquitetura da plataforma de dados, pipeline de ETL e dashboards para análise de indicadores de mobilidade e transporte público.
 
-Este repositório contém a arquitetura da plataforma de dados e dashboards para análise de indicadores de mobilidade e transporte público coletivo.
+---
 
-## 🏗️ Arquitetura da Solução
+## ⚙️ Arquitetura e Engenharia do Pipeline de ETL
 
-### 1. Ingestão e Processamento (ETL)
-* **Extração**: Leitura de dados operacionais (bilhetagem, validações e dados espaciais).
-* **Transformação**:
-  * Sanitização e mascaramento de informações identificáveis (LGPD).
-  * Agregação de dados operacionais por faixas horárias e regiões administrativas.
-  * Padronização de geometrias espaciais no formato PostGIS (SRID 4674 / SIRGAS 2000).
-* **Carga**: Armazenamento otimizado no banco de dados relacional em esquema dedicado (`bd_git`).
+A plataforma utiliza um pipeline automatizado de extração, transformação, enriquecimento espacial e carga (ETL), projetado sob o conceito de **Tabelas de Snapshot e Histórico Incremental**.
+
+> **Nota de Governança e Privacidade**: Em conformidade com as diretrizes de segurança da informação e LGPD, as strings de conexão direta, credenciais de acesso e estruturas brutas de bancos corporativos legados foram omitidas deste repositório público. A documentação abaixo foca exclusivamente na arquitetura lógica e metodológica da solução.
+
+---
+
+### 🏗️ Diagrama de Fluxo de Dados
+  [Fontes de Dados]              [Camada de Ingestão / Staging]         [Camada de Consolidação]          [Camada de Entrega]
+┌────────────────────────┐      ┌──────────────────────────────┐       ┌────────────────────────┐      ┌─────────────────────────┐
+│ Banco de Planejamento  │ ───► │ Snapshots de Planejamento    │ ────► │ Consolidador Completo  │ ───► │                         |
+|Banco Relacional / GIS  │      |                              |       |                        |      |                         |
+└────────────────────────┘      └──────────────────────────────┘       └────────────────────────┘      │  (Camada da Aplicação)  │
+┌────────────────────────┐      ┌──────────────────────────────┐       ┌────────────────────────┐      │                         │
+│ Banco de Bilhetagem    │ ───► │ Snapshots de Carregamento    │ ────► │ Consolidador           │ ───► │  - Esquema Consolidado  │
+└────────────────────────┘      └──────────────────────────────┘       │ Simplificado           │      │  - Camada REST / Visual │
+                                                                       └────────────────────────┘      |                         |
+┌────────────────────────┐      ┌──────────────────────────────┐       ┌────────────────────────┐      |                         |
+│ Banco Espacial (GIS)   │ ───► │ Snapshots de Geometrias      │ ────► │ Consolidador por       │ ───► │                         |
+└────────────────────────┘      └──────────────────────────────┘       │ Faixa Horária (30 min) │      |                         |
+                                                                       └────────────────────────┘      └─────────────────────────┘   
+Este repositório contém a arquitetura da plataforma de dados, pipeline de ETL e dashboards para análise de indicadores de mobilidade e transporte público.
+
+### 🔄 Etapas do Processamento de Dados
+
+#### 1. Ingestão e Sanitização Multiorigem
+* **Sistema de Planejamento Operacional**: Fonte dos dados operacionais teóricos (linhas cadastradas, quadro de horários e frota alocada).
+* **Sistema de Bilhetagem Eletrônica**: Fonte dos dados de carregamento (passageiros pagantes, gratuidades, estudantes, integrações e validações de frota operante).
+* **Banco de Dados Geográfico (GIS)**: Base espacial contendo as geometrias vetoriais dos itinerários oficiais (com projeção Cartográfica UTM / SIRGAS 2000).
+
+#### 2. Normalização e Chave Primária Universal (`ID_LINHA`)
+Para integrar bases relacionais heterogêneas sem perda de informação, o pipeline gera o código unificado `ID_LINHA` por meio da padronização dos atributos:
+$$\text{ID\_LINHA} = \text{CÓDIGO\_LINHA} + \text{SENTIDO} + \text{CÓDIGO\_BACIA}$$
+
+#### 3. Segregação por Modais
+Os dados de bilhetagem e planejamento são segregados automaticamente para garantir métricas isoladas e consistentes:
+* **Serviço Urbano**: Linhas convencionais do sistema rodoviário.
+* **Serviço Rural/Complementar**: Alimentadores e linhas de áreas rurais.
+* **Corredores de Alta Capacidade**: Linhas expressas e estruturantes.
+* **Tratamento de Exceções**: Isolamento de catracas de solo e herança espacial dinâmica para linhas circulares específicas.
+
+#### 4. Validação Espacial e Análise Geométrica
+Cada registro consolidado passa por um módulo de análise de integridade espacial que:
+* Mapeia divergências entre o sentido registrado na operação e o itinerário cadastrado no banco geográfico.
+* Sinaliza inconformidades com *flags* de auditabilidade (`MOTIVO_SEM_GEOMETRIA`, `FLG_DIVERGENCIA_SENTIDO`).
+
+#### 5. Consolidação e Cálculo de Indicadores de Desempenho
+O pipeline calcula mais de 50 indicadores operacionais e financeiros, divididos em visões completas e por faixa horária (30 minutos):
+* **Oferta e Demanda**: Lugares Ofertados, Quilometragem Operada, IPK (Passageiros por Quilômetro) e IRP (Índice de Renovação de Passageiros).
+* **Apropriação Financeira**: Arrecadação Tarifária, Custo do Serviço, Tarifa Técnica Vigente e Valor Estimado de Subsídio.
 
 ## 🛠️ Tecnologias Utilizadas
 
 * **Linguagem**: Python 3.12
 * **Banco de Dados**: PostgreSQL 15+ / PostGIS hospedado no Supabase
 * **Bibliotecas**: Pandas, GeoPandas, SQLAlchemy, Psycopg2, Streamlit e FastAPI
+
+## ⚖️ Aviso Legal e Isenção de Responsabilidade (Disclaimer)
+
+* **Caráter Educativo e Demonstrativo**: Este repositório foi desenvolvido estritamente para fins de demonstração de arquitetura de dados, portfólio técnico e estudo de Engenharia de Software/Dados.
+* **Anonimização e Dados Sintéticos**: Todos os dados, exemplos e tabelas utilizados nesta demonstração são puramente **sintéticos, genéricos e/ou anonimizados**, não representando valores reais, operacionais ou financeiros de qualquer entidade pública ou privada.
+* **Ausência de Código Proprietário**: Não há inclusão de credenciais, chaves de acesso, queries restritas ou componentes de propriedade intelectual exclusiva de terceiros neste repositório público.
