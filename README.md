@@ -36,11 +36,30 @@ graph LR
         E2[- Esquema Consolidado<br/>- Camada REST / Visual]
     end
 
-    F1 --> I1 --> C1 --> E1
-    F2 --> I2 --> C2 --> E1
-    F3 --> I3 --> C3 --> E1
+    %% Conexões de Ingestão
+    F1 --> I1
+    F2 --> I2
+    F3 --> I3
+
+    %% Todos os Snapshots alimentam todos os Consolidadores
+    I1 --> C1
+    I1 --> C2
+    I1 --> C3
+
+    I2 --> C1
+    I2 --> C2
+    I2 --> C3
+
+    I3 --> C1
+    I3 --> C2
+    I3 --> C3
+
+    %% Entrega
+    C1 --> E1
+    C2 --> E1
+    C3 --> E1
     E1 --- E2
-```  
+```
 Este repositório contém a arquitetura da plataforma de dados, pipeline de ETL e dashboards para análise de indicadores de mobilidade e transporte público.
 
 ### 🔄 Etapas do Processamento de Dados
