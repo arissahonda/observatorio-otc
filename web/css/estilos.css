@@ -110,7 +110,7 @@ html, body {
 
 /* LADO A LADO: Força o layout em linha (Horizontal) para as sub-abas ativas */
 #sub-stu.tab-pane.active,
-#sub-teorica-stpu.tab-pane.active {
+#sub-teorica-stu.tab-pane.active {
     display: flex !important;
     flex-direction: row !important; /* Filtros à Esquerda, Conteúdo à Direita */
     width: 100% !important;
