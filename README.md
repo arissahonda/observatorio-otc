@@ -6,8 +6,6 @@ Este repositório contém a arquitetura da plataforma de dados, pipeline de ETL 
 
 A plataforma utiliza um pipeline automatizado de extração, transformação, enriquecimento espacial e carga (ETL), projetado sob o conceito de **Tabelas de Snapshot e Histórico Incremental**.
 
-> **Nota de Governança e Privacidade**: Em conformidade com as diretrizes de segurança da informação e LGPD, as strings de conexão direta, credenciais de acesso e estruturas brutas de bancos corporativos legados foram omitidas deste repositório público. A documentação abaixo foca exclusivamente na arquitetura lógica e metodológica da solução.
-
 ---
 
 ### 🏗️ Diagrama de Fluxo de Dados
