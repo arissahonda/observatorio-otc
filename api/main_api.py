@@ -2,6 +2,7 @@
 =============================================================================
 Módulo: main_api.py
 Descrição: API RESTful do Painel OTPC conectada ao Supabase (Esquema bd_git).
+           - Padronizado para utilizar estritamente a coluna de feição 'geom'.
            - Credenciais 100% ocultas e lidas via arquivo de ambiente (.env).
 =============================================================================
 """
@@ -46,7 +47,6 @@ def carregar_configuracoes():
 def obter_engine_banco():
     carregar_configuracoes()
     
-    # Lê estritamente das variáveis de ambiente
     u_d = os.getenv("DB_USER")
     p_d_raw = os.getenv("DB_PASS")
     p_d = urllib.parse.quote_plus(p_d_raw) if p_d_raw else ""
@@ -116,9 +116,9 @@ def carregar_dados_no_cache():
                     'TARIFA_TECNICA', sit."TARIFA_TECNICA",
                     'ID_LINHA', sit."ID_LINHA",
                     'geojson_geom', CASE 
-                        WHEN sit.geometry IS NOT NULL THEN
+                        WHEN sit.geom IS NOT NULL THEN
                             ST_AsGeoJSON(
-                                ST_Transform(ST_SetSRID(sit.geometry, 31983), 4326),
+                                ST_Transform(ST_SetSRID(sit.geom, 31983), 4326),
                                 5
                             )::json
                         ELSE NULL
@@ -159,7 +159,7 @@ async def lifespan(app: FastAPI):
 # =============================================================================
 app = FastAPI(
     title="API Painel OTPC", 
-    version="2.6.0",
+    version="2.7.0",
     lifespan=lifespan
 )
 
@@ -454,13 +454,13 @@ def obter_historico_completo(
             'total_passageiros', COALESCE(SUM(hist."TOTAL_PASSAGEIROS"), 0),
             'dados', COALESCE(
                 json_agg(
-                    (to_jsonb(hist.*) - 'geometry') || jsonb_build_object(
+                    (to_jsonb(hist.*) - 'geom') || jsonb_build_object(
                         'ID_LINHA', hist."ID_LINHA",
                         'geojson_geom', CASE 
-                            WHEN hist.geometry IS NOT NULL THEN
+                            WHEN hist.geom IS NOT NULL THEN
                                 ST_AsGeoJSON(
                                     ST_Transform(
-                                        ST_SetSRID(ST_SimplifyPreserveTopology(ST_MakeValid(hist.geometry), 10), 31983), 
+                                        ST_SetSRID(ST_SimplifyPreserveTopology(ST_MakeValid(hist.geom), 10), 31983), 
                                         4326
                                     ), 4
                                 )::jsonb
@@ -497,18 +497,17 @@ def obter_historico_completo(
 
 @app.get("/api/v1/mapa/camada-estatica/{nome_tabela}")
 def obter_camada_estatica(nome_tabela: str):
-    colunas_geometria = {
-        "tb_regioes_administrativas": "geom",
-        "tb_ponto_parada_v2025": "geom",
-        "tb_terminais": "geometry",
-        "tb_estacao_metro": "geom",
-        "tb_linha_metro": "geom"
-    }
+    tabelas_permitidas = [
+        "tb_regioes_administrativas",
+        "tb_ponto_parada_v2025",
+        "tb_terminais",
+        "tb_estacao_metro",
+        "tb_linha_metro"
+    ]
 
-    if nome_tabela not in colunas_geometria:
+    if nome_tabela not in tabelas_permitidas:
         return JSONResponse(status_code=400, content={"sucesso": False, "erro": "Tabela não permitida."})
 
-    col_geom = colunas_geometria[nome_tabela]
     engine = obter_engine_banco()
 
     if not engine:
@@ -520,8 +519,8 @@ def obter_camada_estatica(nome_tabela: str):
             'features', COALESCE(json_agg(
                 json_build_object(
                     'type', 'Feature',
-                    'geometry', ST_AsGeoJSON(ST_Transform(ST_SetSRID("{col_geom}", 31983), 4326))::json,
-                    'properties', to_jsonb(t.*) - '{col_geom}'
+                    'geometry', ST_AsGeoJSON(ST_Transform(ST_SetSRID("geom", 31983), 4326))::json,
+                    'properties', to_jsonb(t.*) - 'geom'
                 )
             ), '[]'::json)
         )::text AS geojson_completo
