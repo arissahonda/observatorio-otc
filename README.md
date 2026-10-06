@@ -67,7 +67,7 @@ Este repositório contém a arquitetura da plataforma de dados, pipeline de ETL 
 #### 1. Ingestão e Sanitização Multiorigem
 * **Sistema de Planejamento Operacional**: Fonte dos dados operacionais teóricos (linhas cadastradas, quadro de horários e frota alocada).
 * **Sistema de Bilhetagem Eletrônica**: Fonte dos dados de carregamento (passageiros pagantes, gratuidades, estudantes, integrações e validações de frota operante).
-* **Banco de Dados Geográfico (GIS)**: Base espacial contendo as geometrias vetoriais dos itinerários oficiais (com projeção Cartográfica UTM / SIRGAS 2000).
+* **Banco de Dados Geográfico (GIS)**: Base espacial contendo as geometrias vetoriais dos itinerários (com projeção Cartográfica UTM / SIRGAS 2000).
 
 #### 2. Normalização e Chave Primária Universal (`ID_LINHA`)
 Para integrar bases relacionais heterogêneas sem perda de informação, o pipeline gera o código unificado `ID_LINHA` por meio da padronização dos atributos:
@@ -76,14 +76,14 @@ $$\text{ID\_LINHA} = \text{CÓDIGO\_LINHA} + \text{SENTIDO} + \text{CÓDIGO\_BAC
 #### 3. Segregação por Modais
 Os dados de bilhetagem e planejamento são segregados automaticamente para garantir métricas isoladas e consistentes:
 * **Serviço Urbano**: Linhas convencionais do sistema rodoviário.
-* **Serviço Rural/Complementar**: Alimentadores e linhas de áreas rurais.
+* **Serviço Rural**: Linhas de áreas rurais.
 * **Corredores de Alta Capacidade**: Linhas expressas e estruturantes.
-* **Tratamento de Exceções**: Isolamento de catracas de solo e herança espacial dinâmica para linhas circulares específicas.
+* **Tratamento de Exceções**: Isolamento de catracas de solo.
 
-#### 4. Validação Espacial e Análise Geométrica
-Cada registro consolidado passa por um módulo de análise de integridade espacial que:
-* Mapeia divergências entre o sentido registrado na operação e o itinerário cadastrado no banco geográfico.
-* Sinaliza inconformidades com *flags* de auditabilidade (`MOTIVO_SEM_GEOMETRIA`, `FLG_DIVERGENCIA_SENTIDO`).
+#### 4. Validação Espacial e Consistência de Dados Geográficos
+Cada registro consolidado passa por um módulo de verificação de integridade e qualidade da informação espacial que:
+- Avalia a correspondência entre os registros do sistema de bilhetagem e a base de traçados vetoriais do GIS.
+- Aplica sinalizações de controle de dados (`MOTIVO_SEM_GEOMETRIA`, `FLG_DIVERGENCIA_SENTIDO`) como ferramentas de auditoria para o gestor, identificando pendências de sincronização entre bancos, linhas aguardando mapeamento ou registros de pontos fixos (como catracas de solo e estações).
 
 #### 5. Consolidação e Cálculo de Indicadores de Desempenho
 O pipeline calcula mais de 50 indicadores operacionais e financeiros, divididos em visões completas e por faixa horária (30 minutos):
