@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Observatório do Transporte Público Coletivo | OTPC</title>
+
+    <!-- 1. Estilos de Bibliotecas Externas -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    
+    <!-- 2. CSS Personalizado -->
+    <link rel="stylesheet" href="css/estilos.css?v=1.1">
+</head>
+<body>
+
+<div id="container-principal">
+    
+    <!-- CABEÇALHO DO SISTEMA -->
+    <div id="cabecalho-sistema">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="m-0 fw-bold">🚍 Observatório do Transporte Público Coletivo | OTPC</h5>
+        </div>
+        
+        <!-- MENU SUPERIOR DE ABAS PRINCIPAIS -->
+        <ul class="nav nav-tabs" id="abasModulos" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active fw-bold" id="aba-mapa-tab" data-bs-toggle="tab" data-bs-target="#aba-mapa" type="button" role="tab">
+                    📅 Planejamento do Dia
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold" id="aba-operado-tab" data-bs-toggle="tab" data-bs-target="#aba-operado" type="button" role="tab">
+                    📊 Planejado vs Operado
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold" id="aba-autonomo-tab" data-bs-toggle="tab" data-bs-target="#aba-autonomo" type="button" role="tab">
+                    🔄 Operação Teórica
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold" id="aba-frota-tab" data-bs-toggle="tab" data-bs-target="#aba-frota" type="button" role="tab">
+                    🚌 Análise de Frota
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-bold" id="aba-metro-tab" data-bs-toggle="tab" data-bs-target="#aba-metro" type="button" role="tab">
+                    🚇 Metrô
+                </button>
+            </li>
+        </ul>
+    </div>
+
+    <!-- CONTEÚDO DAS ABAS PRINCIPAIS -->
+    <div class="tab-content" id="conteudoAbas">
+        
+        <!-- ABA 1: PLANEJAMENTO DO DIA -->
+        <div class="tab-pane fade show active h-100" id="aba-mapa" role="tabpanel">
+            <div class="d-flex flex-row h-100">
+                
+                <!-- 1. BARRA LATERAL ESQUERDA (ESTENDE-SE ATÉ O RODAPÉ DA TELA) -->
+                <div id="barra-lateral">
+                    <h6 class="fw-bold text-primary mb-3">Controles de Seleção</h6>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small mb-1">Filtrar por itinerário(s):</label>
+                        <div class="input-group input-group-sm mb-1">
+                            <input type="text" class="form-control" id="input-filtrar-linha" placeholder="Ex: 0.001, 0.002" onkeyup="if(event.key==='Enter') filtrarLinhaEspecifica()">
+                            <button class="btn btn-primary fw-bold" type="button" onclick="filtrarLinhaEspecifica()">Filtrar</button>
+                            <button class="btn btn-outline-secondary fw-bold" type="button" onclick="limparFiltrosMapa1()">Limpar</button>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small mb-1">Filtrar por operadora:</label>
+                        <select class="form-select form-select-sm" id="select-operadora-mapa1" onchange="filtrarPorOperadoraMapa1()">
+                            <option value="">Todas as Operadoras</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label fw-bold small m-0">Filtrar por operação:</label>
+                            <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none border-0" style="font-size: 0.75rem;" onclick="alternarTodasOperacoes()">Marcar/Desmarcar Todas</button>
+                        </div>
+                        <div class="d-flex flex-column gap-1 small border rounded p-2 bg-light" id="grupo-checkbox-operacoes" style="max-height: 140px; overflow-y: auto;">
+                            <span class="text-muted small">Carregando operações...</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Camadas de apoio:</label>
+                        <div class="form-check form-switch mb-1">
+                            <input class="form-check-input" type="checkbox" id="check-ra" onchange="alternarCamadaEstatica('tb_regioes_administrativas', this.checked)">
+                            <label class="form-check-label small" for="check-ra">Regiões Administrativas</label>
+                        </div>
+                        <div class="form-check form-switch mb-1">
+                            <input class="form-check-input" type="checkbox" id="check-paradas" onchange="alternarCamadaEstatica('tb_ponto_parada_v2025', this.checked)">
+                            <label class="form-check-label small" for="check-paradas">Pontos de Parada</label>
+                        </div>
+                        <div class="form-check form-switch mb-1">
+                            <input class="form-check-input" type="checkbox" id="check-terminais" onchange="alternarCamadaEstatica('tb_terminais', this.checked)">
+                            <label class="form-check-label small" for="check-terminais">Terminais de Ônibus</label>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 border-top pt-2">
+                        <label class="form-label fw-bold small text-primary mb-1">Selecionar colunas:</label>
+                        <div class="d-flex flex-column gap-1 small" id="grupo-checkbox-colunas" style="max-height: 180px; overflow-y: auto;">
+                            <!-- Checkboxes gerados dinamicamente via plan_hoje.js -->
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 border-top pt-2">
+                        <label class="form-label fw-bold small text-secondary mb-1">💡 Como usar o mapa:</label>
+                        <div class="p-2 bg-light border rounded small text-muted">
+                            <ul class="m-0 ps-3">
+                                <li><b>Filtrar área:</b> Clique com o botão esquerdo e arraste para desenhar um retângulo.</li>
+                                <li><b>Mover o mapa:</b> Arraste com o <b>botão direito</b> ou com o <b>botão do meio (scroll pressionado)</b>.</li>
+                                <li><b>Aproximar/Afastar:</b> Gire a roda do scroll do mouse.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="mt-2 text-muted small border-top pt-2">
+                        <b>Linhas carregadas:</b> <span id="qtd-total-linhas">0</span><br>
+                        <b>Linhas filtradas:</b> <span id="qtd-linhas-selecionadas" class="fw-bold text-primary">0</span>
+                    </div>
+                </div>
+
+                <!-- 2. COLUNA DA DIREITA: MAPA + DIVISOR + PAINEL INFERIOR COM ROLAGEM -->
+                <div id="conteudo-principal-mapa" class="d-flex flex-column flex-grow-1 h-100 overflow-y-auto">
+                    
+                    <div id="conteudo-superior">
+                        <div id="mapa"></div>
+                    </div>
+
+                    <div id="divisor-redimensionavel" title="Clique e arraste para redimensionar">
+                        <div class="alca-divisor"></div>
+                    </div>
+
+                    <div id="painel-inferior">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="d-flex align-items-center flex-wrap gap-2">
+                                <h6 class="fw-bold text-primary m-0" id="titulo-tabela-linha">📋 Selecione uma área no mapa para filtrar os dados.</h6>
+                                <span id="badge-total-linhas" class="badge bg-primary fs-6 shadow-sm d-none">Total de linhas: 0</span>
+                                <span id="badge-total-viagens" class="badge bg-success fs-6 shadow-sm d-none">Total de viagens: 0</span>
+                                <span id="badge-total-frota" class="badge bg-warning text-dark fs-6 shadow-sm d-none">Frota alocada: 0</span>
+                                <span id="badge-total-producao" class="badge bg-info text-white fs-6 shadow-sm d-none">Produção: 0 km</span>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-success fw-bold" id="btn-exportar-excel" onclick="exportarTabelaExcelMapa1()">📗 Exportar Excel</button>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover align-middle tabela-detalhes m-0">
+                                <thead id="cabecalho-tabela-linha"></thead>
+                                <tbody id="corpo-tabela-linha">
+                                    <tr><td colspan="20" class="text-center text-muted py-4">A carregar dados do planejamento...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ABA 2: PLANEJADO VS. OPERADO -->
+        <div class="tab-pane fade h-100" id="aba-operado" role="tabpanel">
+            
+            <!-- MENU DE SUB-ABAS -->
+            <div class="p-2 bg-light border-bottom flex-shrink-0">
+                <ul class="nav nav-pills nav-sm" id="subAbasOperado" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active btn-sm py-1 px-3" id="sub-stu-tab" data-bs-toggle="pill" data-bs-target="#sub-stu" type="button" role="tab">🚌 STU</button>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="tab-content flex-grow-1 h-100 overflow-hidden" id="conteudoSubAbasOperado">
+                
+                <!-- SUB-ABA 1: STU -->
+                <div class="tab-pane fade show active h-100 d-flex flex-row" id="sub-stu" role="tabpanel">
+    
+                    <!-- 1. BARRA LATERAL ESQUERDA (ESTENDE-SE ATÉ AO RODAPÉ DA TELA) -->
+                    <div id="barra-lateral-historico">
+                        <h6 class="fw-bold text-primary mb-3">📊 Filtros de Histórico (STU)</h6>
+                        
+                        <!-- Filtro de Linha / Itinerário -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small mb-1">Filtrar por itinerário(s):</label>
+                            <div class="input-group input-group-sm mb-1">
+                                <input type="text" class="form-control" id="input-filtrar-linha-historico" placeholder="Ex: 0.110, 0.111" onkeyup="if(event.key==='Enter') filtrarLinhaHistorico()">
+                                <button class="btn btn-primary fw-bold" type="button" onclick="filtrarLinhaHistorico()">Filtrar</button>
+                                <button class="btn btn-outline-secondary fw-bold" type="button" onclick="limparFiltrosHistorico()">Limpar</button>
+                            </div>
+                        </div>
+
+                        <!-- Filtro por Operadora -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small mb-1">🏢 Filtrar por Operadora:</label>
+                            <select class="form-select form-select-sm" id="select-operadora-historico" onchange="filtrarPorOperadoraHistorico()">
+                                <option value="">Todas as Operadoras</option>
+                            </select>
+                        </div>
+
+                        <!-- Botão de Filtro para Veículos Elétricos -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small mb-1">🌱 Tecnologia Limpa:</label>
+                            <button type="button" id="btn-filtro-eletrico-historico" class="btn btn-outline-success btn-sm w-100 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-1" onclick="alternarFiltroEletricoHistorico()">
+                                <span>⚡</span> Apenas Linhas c/ Elétricos
+                            </button>
+                        </div>
+
+                        <!-- Seleção da Data de Pico -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small mb-1">📅 Data de Pico:</label>
+                            <select class="form-select form-select-sm" id="select-data-historico" onchange="carregarDadosHistoricoPorData()">
+                                <option value="">A carregar datas...</option>
+                            </select>
+                            <small id="info-dia-semana-historico" class="fw-bold text-primary d-block mt-1 ms-1"></small>
+                        </div>
+
+                        <!-- Seleção de Métricas (Acordeão de Colunas) -->
+                        <div class="mb-3 border-top pt-2">
+                            <label class="form-label fw-bold small text-primary mb-2">Selecione as métricas (Visão Completa):</label>
+                            
+                            <div class="accordion accordion-flush border" id="accordionColunasSTU">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="flush-headingOpSTU">
+                                        <button class="accordion-button collapsed py-2 px-3 small fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseOpSTU">
+                                            ⚙️ Oferta & Operacional
+                                        </button>
+                                    </h2>
+                                    <div id="flush-collapseOpSTU" class="accordion-collapse collapse" data-bs-parent="#accordionColunasSTU">
+                                        <div class="accordion-body p-2 small bg-light" id="grupo-colunas-operacional"></div>
+                                    </div>
+                                </div>
+
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="flush-headingPassSTU">
+                                        <button class="accordion-button collapsed py-2 px-3 small fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapsePassSTU">
+                                            👥 Demanda (Passageiros)
+                                        </button>
+                                    </h2>
+                                    <div id="flush-collapsePassSTU" class="accordion-collapse collapse" data-bs-parent="#accordionColunasSTU">
+                                        <div class="accordion-body p-2 small bg-light" id="grupo-colunas-demanda"></div>
+                                    </div>
+                                </div>
+
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="flush-headingFinSTU">
+                                        <button class="accordion-button collapsed py-2 px-3 small fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseFinSTU">
+                                            💰 Financeiro
+                                        </button>
+                                    </h2>
+                                    <div id="flush-collapseFinSTU" class="accordion-collapse collapse" data-bs-parent="#accordionColunasSTU">
+                                        <div class="accordion-body p-2 small bg-light" id="grupo-colunas-financeiro"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Camadas de Apoio Espaciais -->
+                        <div class="mb-3 border-top pt-2">
+                            <label class="form-label fw-bold small text-primary mb-1">Camadas de apoio:</label>
+                            <div class="form-check form-switch mb-1">
+                                <input class="form-check-input" type="checkbox" id="check-ra-stu" onchange="alternarCamadaEstaticaHistorico('tb_regioes_administrativas', this.checked)">
+                                <label class="form-check-label small" for="check-ra-stu">Regiões Administrativas</label>
+                            </div>
+                            <div class="form-check form-switch mb-1">
+                                <input class="form-check-input" type="checkbox" id="check-paradas-stu" onchange="alternarCamadaEstaticaHistorico('tb_ponto_parada_v2025', this.checked)">
+                                <label class="form-check-label small" for="check-paradas-stu">Pontos de Parada</label>
+                            </div>
+                            <div class="form-check form-switch mb-1">
+                                <input class="form-check-input" type="checkbox" id="check-terminais-stu" onchange="alternarCamadaEstaticaHistorico('tb_terminais', this.checked)">
+                                <label class="form-check-label small" for="check-terminais-stu">Terminais de Ônibus</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. COLUNA DA DIREITA: MAPA + DIVISOR + PAINEL INFERIOR COM ROLAGEM -->
+                    <div id="conteudo-principal-historico" class="d-flex flex-column flex-grow-1 h-100 overflow-y-auto">
+                        
+                        <div id="conteudo-superior-historico" style="display: flex; height: 450px; min-height: 250px; flex-shrink: 0;">
+                            <div id="mapa-historico" style="flex-grow: 1; height: 100%;"></div>
+                        </div>
+
+                        <div id="divisor-redimensionavel-historico" style="height: 12px; background-color: #e9ecef; border-top: 1px solid #ced4da; cursor: row-resize; display: flex; align-items: center; justify-content: center;">
+                            <div class="alca-divisor" style="width: 45px; height: 4px; background-color: #adb5bd; border-radius: 2px;"></div>
+                        </div>
+
+                        <div id="painel-inferior-historico" class="p-3">
+                            <div class="row g-2 mb-3" id="container-cards-historico">
+                                <div class="col-md-2">
+                                    <div class="card border-0 shadow-sm bg-primary text-white p-2 text-center h-100">
+                                        <span class="small text-white-50 fw-bold">IPK MÉDIO DIA</span>
+                                        <h4 class="fw-bold m-0 mt-1" id="card-ipk-medio">-</h4>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card border-0 shadow-sm bg-success text-white p-2 text-center h-100">
+                                        <span class="small text-white-50 fw-bold">IRP MÉDIO DIA</span>
+                                        <h4 class="fw-bold m-0 mt-1" id="card-irp-medio">-</h4>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card border-0 shadow-sm bg-info text-white p-2 text-center h-100">
+                                        <span class="small text-white-50 fw-bold">CUSTO MÉDIO / KM</span>
+                                        <h4 class="fw-bold m-0 mt-1" id="card-custo-medio">-</h4>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card border-0 shadow-sm bg-dark text-white p-2 text-center h-100">
+                                        <span class="small text-white-50 fw-bold">ARRECADAÇÃO TOTAL</span>
+                                        <h4 class="fw-bold m-0 mt-1" id="card-arrecadacao-total">-</h4>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card border-0 shadow-sm bg-warning text-dark p-2 text-center h-100">
+                                        <span class="small text-dark-50 fw-bold">SUBSÍDIO TOTAL</span>
+                                        <h4 class="fw-bold m-0 mt-1" id="card-subsidio-total">-</h4>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card border-0 shadow-sm bg-secondary text-white p-2 text-center h-100">
+                                        <span class="small text-white-50 fw-bold">DEMANDA / OFERTA</span>
+                                        <h4 class="fw-bold m-0 mt-1" id="card-demanda-oferta">-</h4>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Rankings e Diagnósticos -->
+                            <!-- LINHA DE RANKINGS E DIAGNÓSTICOS REFINADA -->
+                            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-6 g-2 mt-1 mb-3">
+                                
+                                <div class="col">
+                                    <div class="card border shadow-sm p-2 bg-light small h-100">
+                                        <strong class="text-primary mb-1 d-block">🏆 Top 5 Linhas com<br>maior IPK:</strong>
+                                        <ol class="m-0 ps-3" id="lista-top-ipk"></ol>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card border shadow-sm p-2 bg-light small h-100">
+                                        <strong class="text-danger mb-1 d-block">⚠️ Top 5 com menor IPK:</strong>
+                                        <ol class="m-0 ps-3" id="lista-low-ipk"></ol>
+                                    </div>
+                                </div>
+
+                                <div class="col">
+                                    <div class="card border shadow-sm p-2 bg-light small h-100">
+                                        <strong class="text-success mb-1 d-block">👥 Top 5 linhas com maior<br>carregamento:</strong>
+                                        <ol class="m-0 ps-3" id="lista-top-carregamento"></ol>
+                                    </div>
+                                </div>
+
+                                <!-- CARD 1: OPERADO SEM CARREGAMENTO -->
+                                <div class="col">
+                                    <div class="card border border-danger shadow-sm p-2 bg-light small h-100 d-flex flex-column justify-content-between" 
+                                        onclick="filtrarLinhasSemCarregamento()" 
+                                        style="cursor: pointer;" 
+                                        title="Clique para ver linhas operadas sem passageiros">
+                                        <div>
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <strong class="text-danger m-0">🛑 Operado sem Carregamento:</strong>
+                                                <span class="badge bg-danger text-white fw-bold fs-7" id="badge-total-sem-carregamento">0</span>
+                                            </div>
+                                            <small class="text-muted d-block lh-sm" id="subtexto-sem-carregamento">Linhas operadas no dia sem registro de passageiros.</small>
+                                        </div>
+                                        <div class="mt-2 text-center">
+                                            <span class="badge bg-outline-danger text-danger border border-danger w-100 py-1" style="font-size: 0.7rem;">🔍 Ver Operadas s/ Carga</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- CARD 2: PLANEJADO NÃO OPERADO -->
+                                <div class="col">
+                                    <div class="card border border-dark shadow-sm p-2 bg-light small h-100 d-flex flex-column justify-content-between" 
+                                        onclick="filtrarLinhasNaoOperadas()" 
+                                        style="cursor: pointer;" 
+                                        title="Clique para ver linhas planejadas que não rodaram">
+                                        <div>
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <strong class="text-dark m-0">🚫 Não Operadas:</strong>
+                                                <span class="badge bg-dark text-white fw-bold fs-7" id="badge-total-nao-operado">0</span>
+                                            </div>
+                                            <small class="text-muted d-block lh-sm" id="subtexto-nao-operado">Linhas planejadas que não realizaram viagens.</small>
+                                        </div>
+                                        <div class="mt-2 text-center">
+                                            <span class="badge bg-outline-dark text-dark border border-dark w-100 py-1" style="font-size: 0.7rem;">🔍 Ver Não Operadas</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- CARD 3: INCONSISTÊNCIAS GEOMÉTRICAS -->
+                                <div class="col">
+                                    <div class="card border border-warning shadow-sm p-2 bg-light small h-100 d-flex flex-column justify-content-between" 
+                                        onclick="filtrarLinhasInconsistentes()" 
+                                        style="cursor: pointer;" 
+                                        title="Clique para filtrar linhas sem geometria na tabela">
+                                        <div>
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <strong class="text-warning text-dark m-0">⚠️ Inconsistências:</strong>
+                                                <span class="badge bg-warning text-dark fw-bold fs-7" id="badge-total-inconsistencia">0</span>
+                                            </div>
+                                            <small class="text-muted d-block lh-sm" id="subtexto-inconsistencia">Linhas operadas com pendência de geometria.</small>
+                                        </div>
+                                        <div class="mt-2 text-center">
+                                            <span class="badge bg-outline-warning text-dark border border-warning w-100 py-1" style="font-size: 0.7rem;">🔍 Ver Linhas sem Geometria</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <!-- Tabela Principal de Indicadores -->
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold text-primary m-0" id="titulo-tabela-historico">📋 Indicadores Operacionais</h6>
+                                <button class="btn btn-sm btn-success fw-bold" id="btn-exportar-excel-historico" onclick="exportarTabelaExcelHistorico()" disabled>📗 Exportar Excel</button>
+                            </div>
+
+                            <div class="table-responsive mb-4">
+                                <table class="table table-bordered table-hover align-middle tabela-detalhes m-0">
+                                    <thead id="cabecalho-tabela-historico"></thead>
+                                    <tbody id="corpo-tabela-historico">
+                                        <tr><td colspan="20" class="text-center text-muted py-4">Aguardando seleção de data...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Resumo da Frota e Tabela de Veículos -->
+                            <div class="row g-2 mb-3 align-items-stretch" id="container-frota-resumo">
+                                <div class="col-xl-2 col-lg-3 col-md-6">
+                                    <div class="card border-primary text-center p-2 shadow-sm bg-white h-100 d-flex flex-column justify-content-center">
+                                        <span class="text-muted small fw-bold text-truncate">🎂 IDADE MÉDIA</span>
+                                        <h4 class="fw-bold text-primary m-0 mt-1" id="card-frota-idade-media">-</h4>
+                                    </div>
+                                </div>
+                                <div class="col-xl-3 col-lg-3 col-md-6">
+                                    <div class="card border-danger text-center p-2 shadow-sm bg-white h-100 d-flex flex-column justify-content-center"
+                                        onclick="filtrarFrotaVistoriasVencidas()"
+                                        style="cursor: pointer;"
+                                        title="Clique para filtrar e ver os veículos com vistoria vencida na tabela abaixo">
+                                        <span class="text-muted small fw-bold text-truncate">⚠️ VISTORIAS VENCIDAS</span>
+                                        <h4 class="fw-bold text-danger m-0 mt-1" id="card-frota-vistorias-vencidas">-</h4>
+                                        <div class="mt-1">
+                                            <span class="badge bg-outline-danger text-danger border border-danger py-1 px-2" style="font-size: 0.68rem;">🔍 Filtrar Tabela de Frota</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-xl-3 col-lg-3 col-md-6">
+                                    <div class="card border-success text-center p-2 shadow-sm bg-white h-100 d-flex flex-column justify-content-center">
+                                        <span class="text-muted small fw-bold text-truncate">🛣️ KM ESTIMADA TOTAL</span>
+                                        <h4 class="fw-bold text-success m-0 mt-1" id="card-frota-km-total">-</h4>
+                                    </div>
+                                </div>
+                                <div class="col-xl-4 col-lg-3 col-md-6">
+                                    <div class="card border-secondary shadow-sm h-100">
+                                        <div class="card-header bg-light fw-bold text-dark py-1 px-2 small text-truncate">
+                                            ⛽ Combustível (Frota Operante)
+                                        </div>
+                                        <div class="card-body p-1 d-flex justify-content-center align-items-center">
+                                            <div style="position: relative; height: 110px; width: 100%;">
+                                                <canvas id="graficoCombustivelFrota"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card shadow-sm mb-4">
+                                <div class="card-header bg-white py-2 px-3 d-flex justify-content-between align-items-center">
+                                    <h6 class="m-0 fw-bold text-primary">
+                                        🚌 Detalhamento da Frota Física Operante na Data
+                                    </h6>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-primary fs-6" id="badge-total-frota-stu">Veículos: 0</span>
+                                        <button class="btn btn-sm btn-success fw-bold" id="btn-exportar-excel-frota-stu" onclick="exportarTabelaExcelFrotaSTU()" disabled>📗 Exportar Excel</button>
+                                    </div>
+                                </div>
+                                <!-- TABELA DE DETALHAMENTO DA FROTA FÍSICA -->
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover align-middle m-0" id="tabela-frota-stu">
+                                        <thead class="table-light sticky-top">
+                                            <tr>
+                                                <th>Prefixo</th>
+                                                <th>Placa</th>
+                                                <th>Operadora</th> <!-- NOVA COLUNA ADICIONADA -->
+                                                <th>Linha</th>
+                                                <th>Sentido</th>
+                                                <th>Tipo do Veículo</th>
+                                                <th>Combustível</th>
+                                                <th>Idade</th>
+                                                <th>Status Permissão</th>
+                                                <th>Situação Vistoria</th>
+                                                <th>Capacidade Veículo</th>
+                                                <th>Viagens</th>
+                                                <th>Capacidade Ofertada</th>
+                                                <th>Passageiros</th>
+                                                <th>KM Estimada (SIT)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="corpo-tabela-frota-stu">
+                                            <!-- As linhas serão preenchidas dinamicamente via JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <!-- Gráfico Anual STU -->
+                            <div class="card border-primary rounded-3 shadow-sm bg-white mb-4 mt-4">
+                                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-2 px-3">
+                                    <h6 class="fw-bold m-0 fs-6">📊 Acompanhamento de Indicadores Anuais / Históricos (STU)</h6>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <label for="select-ano-historico" class="small fw-bold text-white m-0">Ano:</label>
+                                        <select id="select-ano-historico" class="form-select form-select-sm py-0 px-2 text-dark" style="width: 100px;" onchange="carregarDadosAnuaisAPI('stu')">
+                                            <option value="2026" selected>2026</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="card-body p-3">
+                                    <div style="position: relative; height: 340px; width: 100%;">
+                                        <canvas id="graficoHistoricoMensal"></canvas>
+                                    </div> <!-- FECHAMENTO DO CANVAS -->
+                                </div> <!-- FECHA card-body -->
+                            </div> <!-- FECHA card -->
+
+                        </div> <!-- FECHA #painel-inferior-historico -->
+                    </div> <!-- FECHA #conteudo-principal-historico -->
+                </div> <!-- FECHA SUB-ABA 1 (#sub-stu) -->
+
+            </div> <!-- FECHA CONTAINER DE SUB-ABAS (#conteudoSubAbasOperado) -->
+        </div> <!-- FECHA ABA PRINCIPAL 2 (#aba-operado) -->
+
+        <!-- ABA 3: OPERAÇÃO TEÓRICA -->
+        <div class="tab-pane fade h-100" id="aba-autonomo" role="tabpanel">
+            
+            <!-- MENU DE SUB-ABAS (STU) -->
+            <div class="p-2 bg-light border-bottom flex-shrink-0">
+                <ul class="nav nav-pills nav-sm" id="subAbasTeorica" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active btn-sm py-1 px-3" id="sub-teorica-stpu-tab" data-bs-toggle="pill" data-bs-target="#sub-teorica-stpu" type="button" role="tab">🚌 STU (Teórico)</button>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="tab-content flex-grow-1 h-100 overflow-hidden" id="conteudoSubAbasTeorica">
+                
+                <!-- SUB-ABA 1: STU TEÓRICO -->
+                <div class="tab-pane fade show active h-100 d-flex flex-row" id="sub-teorica-stu" role="tabpanel">
+    
+                    <!-- 1. BARRA LATERAL ESQUERDA -->
+                    <div id="barra-lateral-teorica-stu" class="barra-lateral-filtro">
+                        <h6 class="fw-bold text-primary mb-3">🔄 Operação Teórica (STU)</h6>
+                        
+                        <!-- Filtro de Linha / Itinerário -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small mb-1">Filtrar por itinerário(s):</label>
+                            <div class="input-group input-group-sm mb-1">
+                                <input type="text" class="form-control" id="input-filtrar-linha-teorica-stu" placeholder="Ex: 0.001, 0.002" onkeyup="if(event.key==='Enter') filtrarLinhaTeoricaSTU()">
+                                <button class="btn btn-primary fw-bold" type="button" onclick="filtrarLinhaTeoricaSTU()">Filtrar</button>
+                                <button class="btn btn-outline-secondary fw-bold" type="button" onclick="limparFiltrosTeoricaSTU()">Limpar</button>
+                            </div>
+                        </div>
+
+                        <!-- Filtro por Operadora -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small mb-1">🏢 Filtrar por Operadora:</label>
+                            <select class="form-select form-select-sm" id="select-operadora-teorica-stu" onchange="filtrarPorOperadoraTeoricaSTU()">
+                                <option value="">Todas as Operadoras</option>
+                            </select>
+                        </div>
+
+                        <!-- Seleção da Data de Pico -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small mb-1">📅 Data de Pico:</label>
+                            <select class="form-select form-select-sm" id="select-data-teorica-stu" onchange="carregarDadosTeoricaSTUPorData()">
+                                <option value="">A carregar datas...</option>
+                            </select>
+                            <small id="info-dia-semana-teorica-stu" class="fw-bold text-primary d-block mt-1 ms-1"></small>
+                        </div>
+
+                        <!-- Seleção de Métricas (Acordeão de Colunas) -->
+                        <div class="mb-3 border-top pt-2">
+                            <label class="form-label fw-bold small text-primary mb-2">Selecione as métricas:</label>
+                            
+                            <div class="accordion accordion-flush border" id="accordionColunasTeoricaSTU">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="flush-headingOpTeoricaSTU">
+                                        <button class="accordion-button collapsed py-2 px-3 small fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseOpTeoricaSTU">
+                                            ⚙️ Oferta & Operacional
+                                        </button>
+                                    </h2>
+                                    <div id="flush-collapseOpTeoricaSTU" class="accordion-collapse collapse" data-bs-parent="#accordionColunasTeoricaSTU">
+                                        <div class="accordion-body p-2 small bg-light" id="grupo-colunas-operacional-teorica-stu"></div>
+                                    </div>
+                                </div>
+
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="flush-headingPassTeoricaSTU">
+                                        <button class="accordion-button collapsed py-2 px-3 small fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapsePassTeoricaSTU">
+                                            👥 Demanda (Passageiros)
+                                        </button>
+                                    </h2>
+                                    <div id="flush-collapsePassTeoricaSTU" class="accordion-collapse collapse" data-bs-parent="#accordionColunasTeoricaSTU">
+                                        <div class="accordion-body p-2 small bg-light" id="grupo-colunas-demanda-teorica-stu"></div>
+                                    </div>
+                                </div>
+
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header" id="flush-headingFinTeoricaSTU">
+                                        <button class="accordion-button collapsed py-2 px-3 small fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseFinTeoricaSTU">
+                                            💰 Financeiro
+                                        </button>
+                                    </h2>
+                                    <div id="flush-collapseFinTeoricaSTU" class="accordion-collapse collapse" data-bs-parent="#accordionColunasTeoricaSTU">
+                                        <div class="accordion-body p-2 small bg-light" id="grupo-colunas-financeiro-teorica-stu"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Camadas de Apoio Espaciais -->
+                        <div class="mb-3 border-top pt-2">
+                            <label class="form-label fw-bold small text-primary mb-1">Camadas de apoio:</label>
+                            <div class="form-check form-switch mb-1">
+                                <input class="form-check-input" type="checkbox" id="check-ra-teorica-stu" onchange="alternarCamadaEstaticaTeoricaSTU('tb_regioes_administrativas', this.checked)">
+                                <label class="form-check-label small" for="check-ra-teorica-stu">Regiões Administrativas</label>
+                            </div>
+                            <div class="form-check form-switch mb-1">
+                                <input class="form-check-input" type="checkbox" id="check-paradas-teorica-stu" onchange="alternarCamadaEstaticaTeoricaSTU('tb_ponto_parada_v2025', this.checked)">
+                                <label class="form-check-label small" for="check-paradas-teorica-stu">Pontos de Parada</label>
+                            </div>
+                            <div class="form-check form-switch mb-1">
+                                <input class="form-check-input" type="checkbox" id="check-terminais-teorica-stu" onchange="alternarCamadaEstaticaTeoricaSTU('tb_terminais', this.checked)">
+                                <label class="form-check-label small" for="check-terminais-teorica-stu">Terminais de Ônibus</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. COLUNA DA DIREITA: MAPA + DIVISOR + PAINEL INFERIOR -->
+                    <div id="conteudo-principal-teorica-stu" class="d-flex flex-column flex-grow-1 h-100 overflow-y-auto">
+                        
+                        <div id="conteudo-superior-teorica-stu" style="display: flex; height: 450px; min-height: 250px; flex-shrink: 0;">
+                            <div id="mapa-teorica-stu" style="flex-grow: 1; height: 100%;"></div>
+                        </div>
+
+                        <div id="divisor-redimensionavel-teorica-stu" style="height: 12px; background-color: #e9ecef; border-top: 1px solid #ced4da; cursor: row-resize; display: flex; align-items: center; justify-content: center;">
+                            <div class="alca-divisor" style="width: 45px; height: 4px; background-color: #adb5bd; border-radius: 2px;"></div>
+                        </div>
+
+                        <div id="painel-inferior-teorica-stu" class="p-3">
+                            <!-- Cards de Métricas do Dia -->
+                            <div class="row g-2 mb-3" id="container-cards-teorica-stu">
+                                <div class="col-md-2">
+                                    <div class="card border-0 shadow-sm bg-primary text-white p-2 text-center h-100">
+                                        <span class="small text-white-50 fw-bold">IPK MÉDIO DIA</span>
+                                        <h4 class="fw-bold m-0 mt-1" id="card-ipk-medio-teorica-stu">-</h4>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card border-0 shadow-sm bg-success text-white p-2 text-center h-100">
+                                        <span class="small text-white-50 fw-bold">IRP MÉDIO DIA</span>
+                                        <h4 class="fw-bold m-0 mt-1" id="card-irp-medio-teorica-stu">-</h4>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card border-0 shadow-sm bg-info text-white p-2 text-center h-100">
+                                        <span class="small text-white-50 fw-bold">CUSTO MÉDIO / KM</span>
+                                        <h4 class="fw-bold m-0 mt-1" id="card-custo-medio-teorica-stu">-</h4>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card border-0 shadow-sm bg-dark text-white p-2 text-center h-100">
+                                        <span class="small text-white-50 fw-bold">ARRECADAÇÃO TOTAL</span>
+                                        <h4 class="fw-bold m-0 mt-1" id="card-arrecadacao-total-teorica-stu">-</h4>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card border-0 shadow-sm bg-warning text-dark p-2 text-center h-100">
+                                        <span class="small text-dark-50 fw-bold">SUBSÍDIO TOTAL</span>
+                                        <h4 class="fw-bold m-0 mt-1" id="card-subsidio-total-teorica-stu">-</h4>
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="card border-0 shadow-sm bg-secondary text-white p-2 text-center h-100">
+                                        <span class="small text-white-50 fw-bold">DEMANDA / OFERTA</span>
+                                        <h4 class="fw-bold m-0 mt-1" id="card-demanda-oferta-teorica-stu">-</h4>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Rankings e Diagnósticos -->
+                            <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-xl-5 g-2 mt-1 mb-3">
+                                <div class="col">
+                                    <div class="card border shadow-sm p-2 bg-light small h-100">
+                                        <strong class="text-primary mb-1 d-block">🏆 Top 5 Linhas com<br>maior IPK:</strong>
+                                        <ol class="m-0 ps-3" id="lista-top-ipk-teorica-stu"></ol>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="card border shadow-sm p-2 bg-light small h-100">
+                                        <strong class="text-danger mb-1 d-block">⚠️ Top 5 com menor IPK:</strong>
+                                        <ol class="m-0 ps-3" id="lista-low-ipk-teorica-stu"></ol>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="card border shadow-sm p-2 bg-light small h-100">
+                                        <strong class="text-success mb-1 d-block">👥 Top 5 linhas com maior<br>carregamento:</strong>
+                                        <ol class="m-0 ps-3" id="lista-top-carregamento-teorica-stu"></ol>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="card border border-danger shadow-sm p-2 bg-light small h-100 d-flex flex-column justify-content-between" 
+                                        onclick="filtrarLinhasSemCarregamentoTeoricaSTU()" style="cursor: pointer;" title="Clique para ver linhas sem passageiros">
+                                        <div>
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <strong class="text-danger m-0">🛑 Operado sem carregamento:</strong>
+                                                <span class="badge bg-danger text-white fw-bold fs-7" id="badge-total-sem-carregamento-teorica-stu">0</span>
+                                            </div>
+                                            <small class="text-muted d-block lh-sm" id="subtexto-sem-carregamento-teorica-stu">Linhas teóricas sem registro de passageiros.</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="card border border-warning shadow-sm p-2 bg-light small h-100 d-flex flex-column justify-content-between" 
+                                        onclick="filtrarLinhasInconsistentesTeoricaSTU()" style="cursor: pointer;" title="Clique para filtrar inconsistências">
+                                        <div>
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <strong class="text-warning text-dark m-0">⚠️ Inconsistências:</strong>
+                                                <span class="badge bg-warning text-dark fw-bold fs-7" id="badge-total-inconsistencia-teorica-stu">0</span>
+                                            </div>
+                                            <small class="text-muted d-block lh-sm" id="subtexto-inconsistencia-teorica-stu">Linhas com pendência de geometria.</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tabela Principal de Indicadores Teóricos -->
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="d-flex align-items-center flex-wrap gap-2">
+                                    <h6 class="fw-bold text-primary m-0" id="titulo-tabela-teorica-stu">📋 Indicadores Operacionais Teóricos</h6>
+                                    <span id="badge-total-linhas-teorica-stu" class="badge bg-primary fs-6 shadow-sm d-none">Linhas: 0</span>
+                                    <span id="badge-total-passageiros-teorica-stu" class="badge bg-success fs-6 shadow-sm d-none">Total Passageiros: 0</span>
+                                </div>
+                                <button class="btn btn-sm btn-success fw-bold" id="btn-exportar-excel-teorica-stu" onclick="exportarTabelaExcelTeoricaSTU()" disabled>📗 Exportar Excel</button>
+                            </div>
+
+                            <div class="table-responsive mb-4">
+                                <table class="table table-bordered table-hover align-middle tabela-detalhes m-0">
+                                    <thead id="cabecalho-tabela-teorica-stu"></thead>
+                                    <tbody id="corpo-tabela-teorica-stu">
+                                        <tr><td colspan="20" class="text-center text-muted py-4">Aguardando seleção de data...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Gráfico Anual STU Teórico -->
+                            <div class="card border-primary rounded-3 shadow-sm bg-white mb-4 mt-4">
+                                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-2 px-3">
+                                    <h6 class="fw-bold m-0 fs-6">📊 Acompanhamento de Indicadores Anuais Teóricos</h6>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <label for="select-ano-teorica-stu" class="small fw-bold text-white m-0">Ano:</label>
+                                        <select id="select-ano-teorica-stu" class="form-select form-select-sm py-0 px-2 text-dark" style="width: 100px;" onchange="carregarDadosAnuaisTeoricaAPI('stu')">
+                                            <option value="2026" selected>2026</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="card-body p-3">
+                                    <div style="position: relative; height: 340px; width: 100%;">
+                                        <canvas id="graficoTeoricaMensalSTU"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div> <!-- FECHA #painel-inferior-teorica-stu -->
+                    </div> <!-- FECHA #conteudo-principal-teorica-stu -->
+                </div> <!-- FECHA SUB-ABA 1 (#sub-teorica-stu) -->
+            </div> <!-- FECHA CONTAINER DE SUB-ABAS (#conteudoSubAbasTeorica) -->
+        </div> <!-- FECHA ABA PRINCIPAL 4 (#aba-autonomo) -->
+
+        <!-- ABA 4: ANÁLISE DE FROTA -->
+        <div class="tab-pane fade h-100" id="aba-frota" role="tabpanel">
+            <div class="d-flex flex-row h-100">
+                
+                <!-- 1. BARRA LATERAL ESQUERDA (340PX) -->
+                <div id="barra-lateral-frota" class="barra-lateral-filtro">
+                    <h6 class="fw-bold text-primary mb-3">🚛 Filtros da Frota</h6>
+                    
+                    <!-- Busca por Prefixo ou Placa -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Buscar Veículo:</label>
+                        <div class="input-group input-group-sm mb-1">
+                            <input type="text" id="input-busca-frota" class="form-control" placeholder="Prefixo ou Placa..." onkeyup="if(event.key==='Enter') aplicarFiltrosFrota()">
+                            <button class="btn btn-primary fw-bold" onclick="aplicarFiltrosFrota()">Buscar</button>
+                        </div>
+                    </div>
+
+                    <!-- Filtro por Sistema / Serviço (STU / STR) -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-bold m-0">Sistema / Serviço:</label>
+                            <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none border-0" style="font-size: 0.7rem;" onclick="alternarTodosFiltros('grupo-checkbox-bacia')">Marcar/Desmarcar</button>
+                        </div>
+                        <div class="d-flex flex-column gap-1 small border rounded p-2 bg-light caixa-multi-selecao" id="grupo-checkbox-bacia">
+                            <!-- Renderizado dinamicamente via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Filtro Múltiplo: Operadora -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-bold m-0">Operadora(s):</label>
+                            <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none border-0" style="font-size: 0.7rem;" onclick="alternarTodosFiltros('grupo-checkbox-operadora')">Marcar/Desmarcar</button>
+                        </div>
+                        <div class="d-flex flex-column gap-1 small border rounded p-2 bg-light caixa-multi-selecao" id="grupo-checkbox-operadora">
+                            <!-- Gerado dinamicamente via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Situação da Vistoria -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Situação da Vistoria:</label>
+                        <select id="select-vistoria-frota" class="form-select form-select-sm" onchange="aplicarFiltrosFrota()">
+                            <option value="">Todas as Situações</option>
+                            <option value="REGULAR">Regular</option>
+                            <option value="A VENCER">A Vencer (15 dias)</option>
+                            <option value="VENCIDA">Vencida</option>
+                        </select>
+                    </div>
+
+                    <!-- Tecnologia / Combustível -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Tecnologia / Combustível:</label>
+                        <select id="select-combustivel-frota" class="form-select form-select-sm" onchange="aplicarFiltrosFrota()">
+                            <option value="">Todos os Tipos</option>
+                            <option value="DIESEL">Diesel</option>
+                            <option value="ELÉTRICO">Elétrico</option>
+                        </select>
+                    </div>
+
+                    <button class="btn btn-outline-secondary btn-sm w-100 fw-bold mb-3" onclick="limparFiltrosFrota()">🔄 Limpar Filtros</button>
+
+                    <!-- Resumo de Vistorias -->
+                    <div class="card p-2 shadow-sm border-start border-4 border-info bg-light mb-3">
+                        <h6 class="fw-bold mb-2 small text-primary">📌 Resumo de Vistorias</h6>
+                        <div class="d-flex justify-content-between align-items-center mb-1 small">
+                            <span>🟢 Regulares</span>
+                            <span id="badge-vistoria-regular" class="badge bg-success fs-7">0</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-1 small">
+                            <span>🟡 A Vencer (15d)</span>
+                            <span id="badge-vistoria-avencer" class="badge bg-warning text-dark fs-7">0</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center small">
+                            <span>🔴 Vencidas</span>
+                            <span id="badge-vistoria-vencida" class="badge bg-danger fs-7">0</span>
+                        </div>
+                    </div>
+
+                    <!-- CARD FIXO NA BARRA LATERAL: EXPLICAÇÃO DA CAPACIDADE FINAL (NBR 15570) -->
+                    <div class="card p-2 shadow-sm border-start border-4 border-primary bg-light">
+                        <h6 class="fw-bold mb-1 small text-primary">ℹ️ Cálculo da Capacidade Final</h6>
+                        <p class="small text-muted m-0" style="font-size: 0.74rem; line-height: 1.35; text-align: justify;">
+                            A análise foi realizada considerando a quantidade de assentos cadastrados mais a quantidade de passageiros em pé considerando a área útil, que utilizou os parâmetros da norma <strong>ABNT NBR 15570</strong> para estabelecer quantos passageiros pode ter em pé por metro quadrado para cada tipo de veículo. Caso o cadastro não estivesse dentro dos parâmetros mínimos estabelecidos pela norma, assume-se a capacidade padrão da ABNT.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 2. PAINEL PRINCIPAL DIREITO -->
+                <div id="conteudo-principal-frota" class="d-flex flex-column flex-grow-1 h-100 overflow-y-auto p-3">
+                    
+                    <!-- CABEÇALHO DO MÓDULO -->
+                    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                        <div>
+                            <h5 class="fw-bold mb-0 text-primary">Gestão da Frota Operacional</h5>
+                            <small class="text-muted" style="font-size: 0.8rem;">Data Ref.: <span id="span-data-ref" class="badge bg-light text-dark border ms-1">Carregando...</span></small>
+                        </div>
+                        
+                        <div class="d-flex align-items-center gap-2">
+                            <!-- CONTÊINER PARA BADGES DE SUBSELEÇÃO EM CADEIA DOS GRÁFICOS -->
+                            <div id="badge-filtro-grafico-ativo" class="d-flex align-items-center gap-1 flex-wrap d-none">
+                                <!-- Gerado dinamicamente via JS -->
+                            </div>
+                            <button class="btn btn-sm btn-success fw-bold" onclick="exportarTabelaExcelFrota()">
+                                📗 Exportar Excel (.xlsx)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- CARDS DE RESUMO DA FROTA (KPIS) -->
+                    <div class="row g-2 mb-3">
+                        <div class="col">
+                            <div class="card bg-primary text-white p-2 text-center shadow-sm">
+                                <small class="text-uppercase fw-bold">Total da Frota</small>
+                                <h3 id="card-frota-total" class="m-0 fw-bold">0</h3>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card bg-info text-white p-2 text-center shadow-sm">
+                                <small class="text-uppercase fw-bold">Idade Média</small>
+                                <h3 id="card-frota-idade" class="m-0 fw-bold">0 anos</h3>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card bg-success text-white p-2 text-center shadow-sm">
+                                <small class="text-uppercase fw-bold">Valor Médio Veicular</small>
+                                <h3 id="card-frota-valor-medio" class="m-0 fw-bold">R$ 0,00</h3>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card bg-danger text-white p-2 text-center shadow-sm">
+                                <small class="text-uppercase fw-bold">Vistorias Vencidas</small>
+                                <h3 id="card-frota-vencidas" class="m-0 fw-bold">0</h3>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="card bg-secondary text-white p-2 text-center shadow-sm">
+                                <small class="text-uppercase fw-bold">Com Ar-Condicionado</small>
+                                <h3 id="card-frota-ar" class="m-0 fw-bold">0%</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PAINEL COM OS 5 GRÁFICOS -->
+                    <div class="row g-2 mb-3">
+                        <!-- LINHA 1: COMBUSTÍVEL, TRANSMISSÃO E PERFIL DE IDADE -->
+                        <div class="col-md-4">
+                            <div class="card p-3 shadow-sm h-100">
+                                <h6 class="fw-bold text-primary small mb-1">⛽ Tecnologia / Combustível</h6>
+                                <div class="container-grafico-frota-sm">
+                                    <canvas id="graficoCombustivelFrotaModulo"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card p-3 shadow-sm h-100">
+                                <h6 class="fw-bold text-primary small mb-1">⚙️ Tipo de Transmissão</h6>
+                                <div class="container-grafico-frota-sm">
+                                    <canvas id="graficoTransmissaoFrotaModulo"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card p-3 shadow-sm h-100">
+                                <h6 class="fw-bold text-primary small mb-1">📊 Perfil de Idade dos Veículos</h6>
+                                <div class="container-grafico-frota-sm">
+                                    <canvas id="graficoIdadeFrotaModulo"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- LINHA 2: PROPORÇÃO POR OPERADORA E TIPO DE VEÍCULO -->
+                        <div class="col-md-6">
+                            <div class="card p-3 shadow-sm h-100">
+                                <h6 class="fw-bold text-primary small mb-1">🏢 Frota por Operadora</h6>
+                                <div class="container-grafico-frota-lg">
+                                    <canvas id="graficoOperadoraFrotaModulo"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card p-3 shadow-sm h-100">
+                                <h6 class="fw-bold text-primary small mb-1">🚌 Distribuição por Tipo de Veículo</h6>
+                                <div class="container-grafico-frota-lg">
+                                    <canvas id="graficoTipoVeiculoFrotaModulo"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TABELA CADASTRAL DA FROTA -->
+                    <div class="card p-3 shadow-sm mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="fw-bold m-0 text-primary">📋 Tabela Cadastral Operacional da Frota</h6>
+                        </div>
+                        <div class="table-responsive">
+                            <table id="tabela-frota-modulo" class="table table-striped table-hover align-middle m-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Prefixo</th>
+                                        <th>Placa</th>
+                                        <th>Operadora</th>
+                                        <th>Marca / Modelo</th>
+                                        <th>Ano Fab.</th>
+                                        <th>Idade</th>
+                                        <th>Transmissão</th>
+                                        <th>Combustível</th>
+                                        <th>Ar-Cond.</th>
+                                        <th>Situação Vistoria</th>
+                                        <th>Dias Venc.</th>
+                                        <th>Capacidade Final</th>
+                                        <th>Valor Veículo</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="corpo-tabela-frota-modulo">
+                                    <!-- Preenchido via JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ABA 5: METRÔ -->
+        <div class="tab-pane fade h-100" id="aba-metro" role="tabpanel">
+            <div class="d-flex flex-row h-100">
+                
+                <!-- 1. BARRA LATERAL ESQUERDA (FILTROS E RANKINGS) -->
+                <div id="barra-lateral-metro" class="barra-lateral-filtro">
+                    <h6 class="fw-bold text-primary mb-3">🚇 Filtros do Metrô</h6>
+                    
+                    <!-- Filtro de Data -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small mb-1">📅 Data de Pico:</label>
+                        <select class="form-select form-select-sm border-primary" id="select-data-metro" onchange="carregarDadosMetro()">
+                            <option value="">A carregar datas...</option>
+                        </select>
+                        <small id="info-dia-semana-metro" class="fw-bold text-primary d-block mt-1 ms-1"></small>
+                    </div>
+
+                    <!-- Filtro de Estação -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small mb-1">🚉 Estação de Metrô:</label>
+                        <select class="form-select form-select-sm" id="select-estacao-metro">
+                            <option value="">Todas as Estações (Geral)</option>
+                        </select>
+                    </div>
+
+                    <!-- Indicador do Filtro Ativo -->
+                    <div class="mb-3">
+                        <span class="badge bg-primary fs-7 w-100 py-2 shadow-sm text-truncate" id="badge-filtro-estacao">
+                            Visão Geral (Total Geral)
+                        </span>
+                    </div>
+
+                    <!-- RANKINGS DAS ESTAÇÕES (TOP 5 MAIS E MENOS ACESSADAS) -->
+                    <div class="mb-3 border-top pt-2">
+                        <label class="form-label fw-bold small text-primary mb-2">🏆 Rankings de Acessos</label>
+                        
+                        <!-- Top 5 Mais Acessadas -->
+                        <div class="card border border-success shadow-sm p-2 bg-light small mb-2">
+                            <strong class="text-success mb-1 d-block" style="font-size: 0.75rem;">🟢 Top 5 Mais Acessadas:</strong>
+                            <ol class="m-0 ps-3" id="lista-top-estacoes-metro" style="font-size: 0.75rem;"></ol>
+                        </div>
+
+                        <!-- Top 5 Menos Acessadas -->
+                        <div class="card border border-danger shadow-sm p-2 bg-light small">
+                            <strong class="text-danger mb-1 d-block" style="font-size: 0.75rem;">🔴 Top 5 Menos Acessadas:</strong>
+                            <ol class="m-0 ps-3" id="lista-low-estacoes-metro" style="font-size: 0.75rem;"></ol>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. PAINEL PRINCIPAL DE CONTEÚDO (DIREITA) -->
+                <div id="conteudo-principal-metro" class="d-flex flex-column flex-grow-1 h-100 overflow-y-auto p-3">
+                    
+                    <!-- LINHA 1: CARDS DE MÉTRICAS KPIS -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm bg-primary text-white p-3 text-center h-100">
+                                <span class="small text-white-50 fw-bold">TOTAL DE PASSAGEIROS</span>
+                                <h3 class="fw-bold m-0 mt-1" id="card-total-passageiros-metro">0</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm bg-warning text-dark p-3 text-center h-100">
+                                <span class="small text-dark-50 fw-bold">FAIXA DE PICO</span>
+                                <h3 class="fw-bold m-0 mt-1" id="card-pico-horario-metro">-</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-0 shadow-sm bg-success text-white p-3 text-center h-100">
+                                <span class="small text-white-50 fw-bold">ARRECADAÇÃO TOTAL</span>
+                                <h3 class="fw-bold m-0 mt-1" id="card-sentido-top-metro">R$ 0,00</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- LINHA 2: MAPA + GRÁFICO DE LINHAS + GRÁFICO DE PIZZA -->
+                    <div class="row g-2 mb-3">
+                        <!-- MAPA (40% de largura) -->
+                        <div class="col-lg-5">
+                            <div class="card shadow-sm h-100 border-0">
+                                <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+                                    <span class="fw-bold text-primary small">🗺️ Mapa da Rede e Estações</span>
+                                    <small class="text-muted" style="font-size: 0.7rem;">Clique na estação ou pizza p/ interagir</small>
+                                </div>
+                                <div class="card-body p-0" style="height: 380px;">
+                                    <div id="mapa-metro" style="width: 100%; height: 100%;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- GRÁFICO DE EVOLUÇÃO TEMPORAL (35% de largura) -->
+                        <div class="col-lg-4">
+                            <div class="card shadow-sm h-100 border-0">
+                                <div class="card-header bg-white py-2 fw-bold text-primary small">
+                                    📈 Perfil Horário de Carregamento
+                                </div>
+                                <div class="card-body p-2" style="height: 380px; position: relative;">
+                                    <canvas id="graficoBarrasCarregamento"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- GRÁFICO DE PIZZA / CATEGORIAS (25% de largura) -->
+                        <div class="col-lg-3">
+                            <div class="card shadow-sm h-100 border-0">
+                                <div class="card-header bg-white py-2 fw-bold text-primary small text-truncate">
+                                    🍕 Perfil de Passageiros
+                                </div>
+                                <div class="card-body p-2 d-flex flex-column align-items-center justify-content-center" style="height: 380px;">
+                                    <div style="width: 100%; height: 260px; position: relative;">
+                                        <canvas id="graficoRoscaCategorias"></canvas>
+                                    </div>
+                                    <button class="btn btn-sm btn-outline-secondary mt-2 w-100 fw-bold" style="font-size: 0.7rem;" onclick="resetarFiltroCategoriaMapa()">
+                                        🔄 Resetar Filtro Categoria
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- LINHA 3: TABELA DETALHADA -->
+                    <div id="container-tabela-metro" class="card p-3 shadow-sm border-0 mb-4"></div>
+
+                </div>
+            </div>
+        </div>
+
+    </div> <!-- FECHA CONTAINER DE ABAS (#conteudoAbas) -->
+
+
+<!-- SCRIPTS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<script src="js/mapa_base.js"></script>
+<script src="js/camadas_apoio.js"></script>
+<script src="js/funcoes_tabela.js"></script>
+<script src="js/exportacao_excel.js"></script>
+<script src="js/plan_hoje.js"></script>
+<script src="js/plan_ope_stu.js"></script>
+<script src="js/operacao_teorica_stu.js"></script>
+<script src="js/analise_frota.js"></script>
+<script src="js/metro.js"></script>
+
+</body>
+</html>

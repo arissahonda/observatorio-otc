@@ -1,0 +1,20 @@
+# Manipulação e Engenharia de Dados
+pandas
+geopandas
+numpy
+shapely
+geoalchemy2
+
+# Banco de Dados PostgreSQL / PostGIS
+sqlalchemy
+psycopg2-binary
+psycopg
+
+# API RESTful Backend
+fastapi
+uvicorn
+
+# Gráficos da API
+matplotlib
+openpyxl
+python-dotenv
