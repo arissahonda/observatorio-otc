@@ -159,6 +159,18 @@ ENV/
 env.bak/
 venv.bak/
 
+# Arquivos de Credenciais e Ambientes
+.env
+credenciais.env
+api/credenciais.env
+
+# Pastas de Ambientes Virtuais e Executáveis
+venv/
+__pycache__/
+build/
+dist/
+*.exe
+
 # Spyder project settings
 .spyderproject
 .spyproject

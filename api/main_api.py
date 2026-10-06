@@ -1,27 +1,24 @@
 """
+=============================================================================
 Módulo: main_api.py
-Descrição: API RESTful do Painel OTCP-DF com suporte a consultas de Frota, 
-           Histórico Anual, camadas estáticas do Metrô e dados de faixa horária do Metrô.
+Descrição: API RESTful do Painel OTPC conectada ao Supabase (Esquema bd_git).
+           - Credenciais 100% ocultas e lidas via arquivo de ambiente (.env).
+=============================================================================
 """
 
 import datetime
 import gzip
 import json
 import os
-import tempfile
 import traceback
 import urllib.parse
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Response, Query, Body
+from fastapi import FastAPI, Response, Query
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-from fpdf import FPDF
 from sqlalchemy import create_engine, text
 from dotenv import load_dotenv
 
@@ -37,7 +34,7 @@ def carregar_configuracoes():
         os.path.join(pasta_api, "credenciais.env"),
         os.path.join(pasta_raiz, "credenciais.env"),
         os.path.join(pasta_api, ".env"),
-        os.path.join(pasta_raiz, ".env"),
+        os.path.join(pasta_raiz, ".env")
     ]
     for c in caminhos:
         if os.path.exists(c):
@@ -45,54 +42,34 @@ def carregar_configuracoes():
             return c
     return None
 
-carregar_configuracoes()
 
 def obter_engine_banco():
     carregar_configuracoes()
+    
+    # Lê estritamente das variáveis de ambiente
     u_d = os.getenv("DB_USER")
-    p_d_raw = os.getenv("DB_PASS", "")
+    p_d_raw = os.getenv("DB_PASS")
     p_d = urllib.parse.quote_plus(p_d_raw) if p_d_raw else ""
     h_d = os.getenv("DB_HOST")
     pt_d = os.getenv("DB_PORT", "5432")
     n_d = os.getenv("DB_NAME")
 
-    if not h_d:
+    if not h_d or not u_d:
+        print("⚠️ [BANCO] Variáveis de conexão com o banco não encontradas no arquivo de ambiente!")
         return None
 
     url_conexao = f"postgresql+psycopg2://{u_d}:{p_d}@{h_d}:{pt_d}/{n_d}"
     return create_engine(url_conexao, pool_pre_ping=True)
 
 
-# =============================================================================
-# 1. VALIDADOR DE MODAL
-# =============================================================================
-def validar_modal(modal_str: str) -> str:
-    """Garante suporte aos modais stpc, stpcr, brt e suas variações teóricas."""
-    m = str(modal_str).strip().lower()
-    modais_validos = ["stpc", "stpcr", "brt", "stpc_teorica", "stpcr_teorica"]
-    return m if m in modais_validos else "stpc"
+def validar_modal(modal: str) -> str:
+    if not modal:
+        return "stpc"
+    return modal.lower().strip()
 
 
 # =============================================================================
-# 2. CLASSE GERADORA DE PDF
-# =============================================================================
-class RelatorioPDF(FPDF):
-    def header(self):
-        self.set_font('Helvetica', 'B', 14)
-        self.set_font('Helvetica', '', 10)
-        self.cell(0, 6, 'Painel OTPC-DF | Relatório Operacional de Linhas', border=0, new_x="LMARGIN", new_y="NEXT", align='C')
-        self.line(10, 22, 200, 22)
-        self.ln(6)
-
-    def footer(self):
-        self.set_y(-15)
-        self.set_font('Helvetica', 'I', 8)
-        data_str = datetime.datetime.now().strftime("%d/%m/%Y às %H:%M")
-        self.cell(0, 10, f'Gerado em {data_str} | Página {self.page_no()}', align='C')
-
-
-# =============================================================================
-# 3. VARIÁVEIS GLOBAIS DE CACHE EM MEMÓRIA RAM
+# 2. VARIÁVEIS GLOBAIS DE CACHE EM MEMÓRIA RAM
 # =============================================================================
 CACHE_LINHAS_HOJE = {
     "conteudo_gzip": None,
@@ -100,8 +77,6 @@ CACHE_LINHAS_HOJE = {
 }
 
 CACHE_HISTORICO_COMPLETO = {}
-CACHE_HISTORICO_SIMPLIFICADO = {}
-CACHE_HISTORICO_DIMENSIONAMENTO = {}
 
 
 def carregar_dados_no_cache():
@@ -140,16 +115,18 @@ def carregar_dados_no_cache():
                     'TARIFA_USUARIO', sit."TARIFA_USUARIO",
                     'TARIFA_TECNICA', sit."TARIFA_TECNICA",
                     'ID_LINHA', sit."ID_LINHA",
-                    'geojson_geom', ST_AsGeoJSON(
-                        ST_Transform(ST_SetSRID(bdg.geometry, 31983), 4326),
-                        5
-                    )::json
+                    'geojson_geom', CASE 
+                        WHEN sit.geometry IS NOT NULL THEN
+                            ST_AsGeoJSON(
+                                ST_Transform(ST_SetSRID(sit.geometry, 31983), 4326),
+                                5
+                            )::json
+                        ELSE NULL
+                    END
                 )
             ), '[]'::json)
         )::text AS json_completo
-        FROM "painel_mobilidade"."snp_sit_planejamento_hoje" sit
-        INNER JOIN "painel_mobilidade"."snp_bdg_itinerarios" bdg
-            ON sit."ID_LINHA" = bdg."ID_LINHA"
+        FROM "bd_git"."snp_planejamento_hoje" sit
         WHERE CAST(sit."FLG_DIA_ATUAL" AS VARCHAR) = '1';
     """)
 
@@ -167,7 +144,7 @@ def carregar_dados_no_cache():
 
 
 # =============================================================================
-# 4. GERENCIADOR DE LIFESPAN
+# 3. GERENCIADOR DE LIFESPAN
 # =============================================================================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -178,11 +155,11 @@ async def lifespan(app: FastAPI):
 
 
 # =============================================================================
-# 5. APLICAÇÃO FASTAPI
+# 4. APLICAÇÃO FASTAPI
 # =============================================================================
 app = FastAPI(
-    title="API Painel OTPC-DF", 
-    version="2.5.0",
+    title="API Painel OTPC", 
+    version="2.6.0",
     lifespan=lifespan
 )
 
@@ -198,7 +175,7 @@ app.add_middleware(
 
 
 # =============================================================================
-# 6. ENDPOINTS DE MAPA E CACHE
+# 5. ENDPOINTS DE MAPA E CACHE
 # =============================================================================
 
 @app.get("/api/v1/mapa/linhas-hoje")
@@ -226,25 +203,19 @@ def obter_linhas_mapa_hoje():
 
 @app.get("/api/v1/mapa/limpar-cache-linhas")
 def limpar_cache_linhas():
-    global CACHE_LINHAS_HOJE, CACHE_HISTORICO_COMPLETO, CACHE_HISTORICO_SIMPLIFICADO, CACHE_HISTORICO_DIMENSIONAMENTO
+    global CACHE_LINHAS_HOJE, CACHE_HISTORICO_COMPLETO
     CACHE_LINHAS_HOJE["conteudo_gzip"] = None
     CACHE_LINHAS_HOJE["timestamp"] = None
     CACHE_HISTORICO_COMPLETO.clear()
-    CACHE_HISTORICO_SIMPLIFICADO.clear()
-    CACHE_HISTORICO_DIMENSIONAMENTO.clear()
     return {"sucesso": True, "mensagem": "Cache de memória RAM limpo com sucesso!"}
 
 
 # =============================================================================
-# 7. ENDPOINTS DE FROTA (HISTÓRICO PICO E SNAPSHOT CADASTRO)
+# 6. ENDPOINTS DE FROTA (HISTÓRICO PICO E SNAPSHOT CADASTRO)
 # =============================================================================
 
 @app.get("/api/v1/frota/historico-pico")
 def obter_historico_frota_pico(data_pico: str = Query(None)):
-    """
-    Retorna os dados da frota no pico para integração com o painel Planejado vs Operado.
-    Consulta a tabela: hist_sit_frota_pico
-    """
     engine = obter_engine_banco()
     if not engine:
         return JSONResponse(status_code=500, content={"sucesso": False, "erro": "Sem conexão com o banco de dados."})
@@ -261,7 +232,7 @@ def obter_historico_frota_pico(data_pico: str = Query(None)):
             'total_registros', COUNT(*),
             'dados', COALESCE(json_agg(to_jsonb(f.*)), '[]'::json)
         )::text AS json_completo
-        FROM "painel_mobilidade"."hist_sit_frota_pico" f
+        FROM "bd_git"."hist_frota_pico" f
         {filtro_sql};
     """)
 
@@ -282,10 +253,6 @@ def obter_cadastro_frota_snapshot(
     situacao_vistoria: str = Query(None),
     tipo_combustivel: str = Query(None)
 ):
-    """
-    Retorna os dados cadastrais da frota atualizada diariamente.
-    Consulta a tabela: snp_sit_frota_cadastro
-    """
     engine = obter_engine_banco()
     if not engine:
         return JSONResponse(status_code=500, content={"sucesso": False, "erro": "Sem conexão com o banco de dados."})
@@ -313,7 +280,7 @@ def obter_cadastro_frota_snapshot(
             'total_registros', COUNT(*),
             'dados', COALESCE(json_agg(to_jsonb(f.*)), '[]'::json)
         )::text AS json_completo
-        FROM "painel_mobilidade"."snp_sit_frota_cadastro" f
+        FROM "bd_git"."snp_frota_cadastro" f
         {clausula_where};
     """)
 
@@ -326,34 +293,22 @@ def obter_cadastro_frota_snapshot(
     except Exception as e:
         traceback.print_exc()
         return JSONResponse(status_code=500, content={"sucesso": False, "erro": str(e)})
-    
+
 
 # =============================================================================
-# 8. ENDPOINTS DE INDICADORES HISTÓRICOS, ANUAIS E METRÔ
+# 7. ENDPOINTS DE INDICADORES HISTÓRICOS, ANUAIS E METRÔ
 # =============================================================================
 
-# =============================================================================
-# 8.1 ENDPOINT DE DATAS DISPONÍVEIS
-# =============================================================================
 @app.get("/api/v1/indicadores/datas-disponiveis")
 def obter_datas_disponiveis(tabela: str = Query("pico"), modal: str = Query("stpc")):
-    """
-    Retorna as datas disponíveis garantindo o mapeamento direto e exclusivo da tabela 
-    correspondente ao modal e painel solicitado.
-    """
     modal_limpo = validar_modal(modal)
-    modal_base = modal_limpo.replace("_teorica", "")
 
-    # Mapeamento estrito de tabelas sem fallback cruzado
     if "teorica" in modal_limpo or tabela == "pico_teorica":
-        nome_tabela_sql = f"hist_ind_simplificado_pico_{modal_base}"
-    elif tabela == "dimensionamento":
-        nome_tabela_sql = f"hist_analise_dime_pico_{modal_base}"
+        nome_tabela_sql = "hist_ind_simplificado_pico_stu"
     elif tabela in ["metro", "tdmax"]:
-        nome_tabela_sql = f"hist_tdmax_faixa_horaria_{modal_base}"
+        nome_tabela_sql = "hist_faixa_horaria_metro"
     else:
-        # Painel "Planejado vs Operado" (Histórico Consolidado Real)
-        nome_tabela_sql = f"hist_ind_consolidados_pico_{modal_base}"
+        nome_tabela_sql = "hist_ind_consolidados_pico_stu"
 
     col_data = "DATA_REFERENCIA" if tabela in ["metro", "tdmax"] else "DATA_PICO"
 
@@ -363,7 +318,7 @@ def obter_datas_disponiveis(tabela: str = Query("pico"), modal: str = Query("stp
 
     query = text(f"""
         SELECT "{col_data}" AS data_disponivel
-        FROM "painel_mobilidade"."{nome_tabela_sql}"
+        FROM "bd_git"."{nome_tabela_sql}"
         WHERE "{col_data}" IS NOT NULL AND TRIM(CAST("{col_data}" AS VARCHAR)) != ''
         GROUP BY "{col_data}"
         ORDER BY 
@@ -382,10 +337,8 @@ def obter_datas_disponiveis(tabela: str = Query("pico"), modal: str = Query("stp
     except Exception as e:
         print(f"❌ [ERRO API DATAS] Tabela {nome_tabela_sql}: {e}")
         return {"sucesso": False, "datas": [], "erro": str(e)}
-    
-# =============================================================================
-# 8.2 ENDPOINT DE HISTÓRICO ANUAL
-# =============================================================================
+
+
 @app.get("/api/v1/indicadores/historico-anual")
 def obter_historico_anual(
     ano: str = Query("2026"), 
@@ -398,10 +351,9 @@ def obter_historico_anual(
         return JSONResponse(status_code=500, content={"sucesso": False, "erro": "Sem conexão com o banco de dados."})
 
     if "teorica" in modal_limpo:
-        modal_base = modal_limpo.replace("_teorica", "")
-        nome_tabela = f"hist_ind_simplificado_pico_{modal_base}"
+        nome_tabela = "hist_ind_simplificado_pico_stu"
     else:
-        nome_tabela = f"hist_ind_consolidados_pico_{modal_limpo}"
+        nome_tabela = "hist_ind_consolidados_pico_stu"
 
     query = text(f"""
         SELECT 
@@ -411,7 +363,7 @@ def obter_historico_anual(
             SUM(CAST(hist."ARRECADACAO_DIA" AS NUMERIC)) AS arrecadacao_total,
             SUM(CAST(hist."VALOR_SUBSIDIO" AS NUMERIC)) AS subsidio_total,
             SUM(CAST(hist."TOTAL_PASSAGEIROS" AS NUMERIC)) AS passageiros_total
-        FROM "painel_mobilidade"."{nome_tabela}" hist
+        FROM "bd_git"."{nome_tabela}" hist
         WHERE TRIM(CAST(hist."DATA_PICO" AS VARCHAR)) LIKE :ano_pattern
         GROUP BY TO_CHAR(TO_DATE(TRIM(CAST(hist."DATA_PICO" AS VARCHAR)), 'DD/MM/YYYY'), 'MM/YYYY')
         ORDER BY mes_ano ASC;
@@ -424,12 +376,9 @@ def obter_historico_anual(
     except Exception as e:
         return JSONResponse(status_code=500, content={"sucesso": False, "erro": str(e)})
 
-# =============================================================================
-# 8.3 ENDPOINT METRÔ POR FAIXA HORÁRIA
-# =============================================================================
+
 @app.get("/api/v1/indicadores/metro-faixa-horaria")
 def obter_metro_faixa_horaria(data_pico: str = Query(...)):
-    """Retorna os dados detalhados de faixa horária do Metrô por estação."""
     engine = obter_engine_banco()
     if not engine:
         return JSONResponse(status_code=500, content={"sucesso": False, "erro": "Sem conexão com o banco de dados."})
@@ -460,7 +409,7 @@ def obter_metro_faixa_horaria(data_pico: str = Query(...)):
             SUM(COALESCE(CAST("TOTAL_INTEGRACOES" AS NUMERIC), 0)) AS total_integracoes,
             SUM(COALESCE(CAST("TOTAL_PASSAGEIROS" AS NUMERIC), 0)) AS total_passageiros,
             SUM(COALESCE(CAST("ARRECADACAO_DIA" AS NUMERIC), 0)) AS arrecadacao_dia
-        FROM "painel_mobilidade"."hist_tdmax_faixa_horaria_metro"
+        FROM "bd_git"."hist_faixa_horaria_metro"
         WHERE REPLACE(TRIM(CAST("DATA_REFERENCIA" AS VARCHAR)), ' ', '') ILIKE REPLACE(:data_pico, ' ', '')
         GROUP BY "INTERVALO", "LINHA_CODIGO", "LINHA_DENOMINACAO"
         ORDER BY "INTERVALO" ASC;
@@ -474,23 +423,15 @@ def obter_metro_faixa_horaria(data_pico: str = Query(...)):
         return JSONResponse(status_code=500, content={"sucesso": False, "erro": str(e)})
 
 
-# =============================================================================
-# 8.4 ENDPOINT DE HISTÓRICO COMPLETO (SEPARAÇÃO ESTRITA POR PAINEL)
-# =============================================================================
 @app.get("/api/v1/indicadores/historico-completo")
 def obter_historico_completo(
     data: str = Query(...), 
     modal: str = Query("stpc")
 ):
-    """
-    Retorna os indicadores consolidados históricos ou teóricos.
-    Mapeia diretamente para a tabela específica de cada painel sem realizar fallbacks.
-    """
     data_limpa = data.strip() if data else ""
     modal_limpo = validar_modal(modal)
     chave_cache = f"{data_limpa}_{modal_limpo}"
 
-    # Retorna do cache em memória se a consulta já tiver sido realizada
     if chave_cache in CACHE_HISTORICO_COMPLETO:
         return Response(content=CACHE_HISTORICO_COMPLETO[chave_cache], media_type="application/json")
 
@@ -498,12 +439,10 @@ def obter_historico_completo(
     if not engine:
         return JSONResponse(status_code=500, content={"sucesso": False, "erro": "Sem conexão com o banco de dados."})
 
-    # Definição direta da tabela alvo com base no modal recebido
     if "teorica" in modal_limpo:
-        modal_base = modal_limpo.replace("_teorica", "")
-        nome_tabela = f"hist_ind_simplificado_pico_{modal_base}"
+        nome_tabela = "hist_ind_simplificado_pico_stu"
     else:
-        nome_tabela = f"hist_ind_consolidados_pico_{modal_limpo}"
+        nome_tabela = "hist_ind_consolidados_pico_stu"
 
     query = text(f"""
         SELECT json_build_object(
@@ -532,7 +471,7 @@ def obter_historico_completo(
                 '[]'::json
             )
         )::text AS json_completo
-        FROM "painel_mobilidade"."{nome_tabela}" hist
+        FROM "bd_git"."{nome_tabela}" hist
         WHERE REPLACE(TRIM(CAST(hist."DATA_PICO" AS VARCHAR)), ' ', '') ILIKE REPLACE(:data_pico, ' ', '');
     """)
 
@@ -551,161 +490,17 @@ def obter_historico_completo(
         traceback.print_exc()
         return JSONResponse(status_code=500, content={"sucesso": False, "erro": str(e)})
 
-# =============================================================================
-# 8.5 ENDPOINT DE DIMENSIONAMENTO DO PICO
-# =============================================================================
-@app.get("/api/v1/indicadores/historico-dimensionamento-pico")
-def obter_historico_dimensionamento_pico(
-    data: str = Query(...),
-    modal: str = Query("stpc"),
-    bacia_id: str = Query(None),
-    operadora: str = Query(None),
-    linha_codigo: str = Query(None),
-    flg_sem_carregamento: str = Query(None)
-):
-    """
-    Retorna os dados de análise de dimensionamento por faixa horária/pico
-    para os modais STPC, STPCR e BRT sem realizar cruzamentos externos,
-    preservando 100% das colunas nativas da tabela.
-    """
-    data_limpa = data.strip() if data else ""
-    modal_limpo = validar_modal(modal)
-    chave_cache = f"{data_limpa}_{modal_limpo}_{bacia_id}_{operadora}_{linha_codigo}_{flg_sem_carregamento}"
-
-    # Retorna o resultado direto do cache em memória se disponível
-    if chave_cache in CACHE_HISTORICO_DIMENSIONAMENTO:
-        return Response(content=CACHE_HISTORICO_DIMENSIONAMENTO[chave_cache], media_type="application/json")
-
-    engine = obter_engine_banco()
-    if not engine:
-        return JSONResponse(status_code=500, content={"sucesso": False, "erro": "Sem conexão com o banco de dados."})
-
-    # Seleção dinâmica da tabela de acordo com o modal solicitado (stpc, stpcr ou brt)
-    nome_tabela = f"hist_analise_dim_pico_{modal_limpo}"
-
-    params = {"data_pico": data_limpa, "modal": modal_limpo}
-    filtros_sql = ""
-
-    if bacia_id:
-        filtros_sql += ' AND hist."BACIA_ID" = :bacia_id'
-        params["bacia_id"] = bacia_id
-
-    if operadora:
-        filtros_sql += ' AND hist."OPERADORA" ILIKE :operadora'
-        params["operadora"] = f"%{operadora}%"
-
-    if linha_codigo:
-        filtros_sql += ' AND hist."LINHA_CODIGO" = :linha_codigo'
-        params["linha_codigo"] = linha_codigo
-
-    if flg_sem_carregamento:
-        filtros_sql += ' AND hist."FLG_SEM_CARREGAMENTO" = :flg_sem_carregamento'
-        params["flg_sem_carregamento"] = flg_sem_carregamento.strip()
-
-    # Consulta direta na tabela do modal sem JOINs externos
-    query = text(f"""
-        SELECT json_build_object(
-            'sucesso', true,
-            'tipo_visao', 'DIMENSIONAMENTO_PICO',
-            'modal', :modal,
-            'data_pico', :data_pico,
-            'total_registros', COUNT(*),
-            'total_passageiros', COALESCE(SUM(hist."TOTAL_PASSAGEIROS"), 0),
-            'dados', COALESCE(
-                json_agg(to_jsonb(hist.*)), 
-                '[]'::json
-            )
-        )::text AS json_completo
-        FROM "painel_mobilidade"."{nome_tabela}" hist
-        WHERE REPLACE(TRIM(CAST(hist."DATA_PICO" AS VARCHAR)), ' ', '') ILIKE REPLACE(:data_pico, ' ', '')
-        {filtros_sql};
-    """)
-
-    try:
-        with engine.connect() as conn:
-            resultado_json = conn.execute(query, params).scalar()
-            if resultado_json:
-                CACHE_HISTORICO_DIMENSIONAMENTO[chave_cache] = resultado_json
-                return Response(content=resultado_json, media_type="application/json")
-            return JSONResponse(status_code=404, content={"sucesso": False, "erro": f"Nenhum dado encontrado para a data {data_limpa} no modal {modal_limpo.upper()}."})
-    except Exception as e:
-        traceback.print_exc()
-        return JSONResponse(status_code=500, content={"sucesso": False, "erro": str(e)})
 
 # =============================================================================
-# 8.6 ENDPOINT DE CARREGAMENTO POR FAIXA HORÁRIA
-# =============================================================================
-@app.get("/api/v1/indicadores/carregamento-faixa-horaria")
-def obter_carregamento_faixa_horaria(
-    data_pico: str = Query(...),
-    modal: str = Query("stpc"),
-    bacia_id: str = Query(None),
-    operadora: str = Query(None),
-    linha_codigo: str = Query(None)
-):
-    engine = obter_engine_banco()
-    if not engine:
-        return JSONResponse(status_code=500, content={"sucesso": False, "erro": "Sem conexão com o banco de dados."})
-
-    data_limpa = data_pico.strip() if data_pico else ""
-    modal_limpo = validar_modal(modal)
-    nome_tabela = f"historico_tdmax_faixa_horaria_{modal_limpo}"
-
-    params = {"data_pico": data_limpa}
-    filtros_sql = ""
-
-    if bacia_id:
-        filtros_sql += ' AND hist."BACIA_ID" = :bacia_id'
-        params["bacia_id"] = bacia_id
-    
-    if operadora:
-        filtros_sql += ' AND hist."OPERADORA" ILIKE :operadora'
-        params["operadora"] = f"%{operadora}%"
-        
-    if linha_codigo:
-        filtros_sql += ' AND hist."LINHA_CODIGO" = :linha_codigo'
-        params["linha_codigo"] = linha_codigo
-
-    query = text(f"""
-        SELECT 
-            hist."INTERVALO",
-            COALESCE(hist."ID_LINHA", sit."ID_LINHA") AS "ID_LINHA",
-            SUM(COALESCE(CAST(hist."TOTAL_PASSAGEIROS" AS NUMERIC), 0)) AS total_passageiros,
-            SUM(COALESCE(CAST(hist."TOTAL_PAGANTES" AS NUMERIC), 0)) AS total_pagantes,
-            SUM(COALESCE(CAST(hist."TOTAL_ESTUDANTES" AS NUMERIC), 0)) AS total_estudantes,
-            SUM(COALESCE(CAST(hist."TOTAL_GRATUIDADES" AS NUMERIC), 0)) AS total_gratuidades,
-            SUM(COALESCE(CAST(hist."TOTAL_INTEGRACOES" AS NUMERIC), 0)) AS total_integracoes,
-            SUM(COALESCE(CAST(hist."ARRECADACAO_DIA" AS NUMERIC), 0)) AS arrecadacao_dia,
-            SUM(COALESCE(CAST(hist."VIAGENS_TDMAX" AS NUMERIC), 0)) AS viagens_tdmax
-        FROM "painel_mobilidade"."{nome_tabela}" hist
-        LEFT JOIN "painel_mobilidade"."snapshot_sit_planejamento_pico" sit
-            ON CAST(hist."ID_LINHA" AS VARCHAR) = CAST(sit."ID_LINHA" AS VARCHAR)
-        WHERE REPLACE(TRIM(CAST(hist."DATA_REFERENCIA" AS VARCHAR)), ' ', '') ILIKE REPLACE(:data_pico, ' ', '')
-        {filtros_sql}
-        GROUP BY hist."INTERVALO", COALESCE(hist."ID_LINHA", sit."ID_LINHA")
-        ORDER BY hist."INTERVALO" ASC;
-    """)
-
-    try:
-        with engine.connect() as conn:
-            resultado = conn.execute(query, params).mappings().fetchall()
-            return {"sucesso": True, "modal": modal_limpo, "dados": [dict(r) for r in resultado]}
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"sucesso": False, "erro": str(e)})
-
-
-# =============================================================================
-# 9. CAMADAS ESPACIAIS E EXPORTAÇÃO
+# 8. CAMADAS ESPACIAIS DE APOIO
 # =============================================================================
 
 @app.get("/api/v1/mapa/camada-estatica/{nome_tabela}")
 def obter_camada_estatica(nome_tabela: str):
-    """Retorna o GeoJSON das camadas estáticas (incluindo estações e linhas do Metrô)."""
     colunas_geometria = {
         "tb_regioes_administrativas": "geom",
         "tb_ponto_parada_v2025": "geom",
         "tb_terminais": "geometry",
-        "tb_catracas": "geometry",
         "tb_estacao_metro": "geom",
         "tb_linha_metro": "geom"
     }
@@ -730,7 +525,7 @@ def obter_camada_estatica(nome_tabela: str):
                 )
             ), '[]'::json)
         )::text AS geojson_completo
-        FROM "painel_mobilidade"."{nome_tabela}" t;
+        FROM "bd_git"."{nome_tabela}" t;
     """)
 
     try:
