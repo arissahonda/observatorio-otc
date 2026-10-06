@@ -64,7 +64,7 @@ def obter_engine_banco():
 
 def validar_modal(modal: str) -> str:
     if not modal:
-        return "stpc"
+        return "stu"
     return modal.lower().strip()
 
 
@@ -300,7 +300,7 @@ def obter_cadastro_frota_snapshot(
 # =============================================================================
 
 @app.get("/api/v1/indicadores/datas-disponiveis")
-def obter_datas_disponiveis(tabela: str = Query("pico"), modal: str = Query("stpc")):
+def obter_datas_disponiveis(tabela: str = Query("pico"), modal: str = Query("stu")):
     modal_limpo = validar_modal(modal)
 
     if "teorica" in modal_limpo or tabela == "pico_teorica":
@@ -342,7 +342,7 @@ def obter_datas_disponiveis(tabela: str = Query("pico"), modal: str = Query("stp
 @app.get("/api/v1/indicadores/historico-anual")
 def obter_historico_anual(
     ano: str = Query("2026"), 
-    modal: str = Query("stpc")
+    modal: str = Query("stu")
 ):
     modal_limpo = validar_modal(modal)
     engine = obter_engine_banco()
@@ -426,7 +426,7 @@ def obter_metro_faixa_horaria(data_pico: str = Query(...)):
 @app.get("/api/v1/indicadores/historico-completo")
 def obter_historico_completo(
     data: str = Query(...), 
-    modal: str = Query("stpc")
+    modal: str = Query("stu")
 ):
     data_limpa = data.strip() if data else ""
     modal_limpo = validar_modal(modal)
