@@ -69,9 +69,12 @@ Este repositório contém a arquitetura da plataforma de dados, pipeline de ETL 
 * **Sistema de Bilhetagem Eletrônica**: Fonte dos dados de carregamento (passageiros pagantes, gratuidades, estudantes, integrações e validações de frota operante).
 * **Banco de Dados Geográfico (GIS)**: Base espacial contendo as geometrias vetoriais dos itinerários (com projeção Cartográfica UTM / SIRGAS 2000).
 
-#### 2. Normalização e Chave Primária Universal (`ID_LINHA`)
-Para integrar bases relacionais heterogêneas sem perda de informação, o pipeline gera o código unificado `ID_LINHA` por meio da padronização dos atributos:
-$$\text{ID\_LINHA} = \text{CÓDIGO\_LINHA} + \text{SENTIDO} + \text{CÓDIGO\_BACIA}$$
+#### 2. Normalização e Modelagem da Chave Primária Universal (`ID_LINHA`)
+Para superar a heterogeneidade das fontes legadas e viabilizar a modelagem dimensional do painel, foi desenvolvida a arquitetura de uma **Chave Primária Sintética Universal**. Esta abordagem resolve os conflitos de cardinalidade e padroniza a granularidade dos dados entre os sistemas de planejamento, bilhetagem e geoprocessamento:
+
+```text
+[Chave Primária Universal] = [Código do Serviço (4 dígitos)] + [Sentido Operacional (1 dígito)] + [Identificador da Região/Bacia (1 dígito)]
+```
 
 #### 3. Segregação por Modais
 Os dados de bilhetagem e planejamento são segregados automaticamente para garantir métricas isoladas e consistentes:
