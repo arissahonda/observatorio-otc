@@ -129,7 +129,7 @@ function garantirInicializacaoMapaTeoricaSTU() {
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(mapaTeoricaSTU);
         }
 
-        if (mapaTeoricaSTC && typeof ativarControlesMouseMapa === 'function') {
+        if (mapaTeoricaSTU && typeof ativarControlesMouseMapa === 'function') {
             ativarControlesMouseMapa(mapaTeoricaSTU, filtrarPorAreaTeoricaSTU, limparSelecaoAreaTeoricaSTU);
         }
 
@@ -182,8 +182,8 @@ async function carregarDatasTeoricaSTU() {
 
 async function carregarDadosTeoricaSTUPorData() {
     const selectData = document.getElementById("select-data-teorica-stu");
-    const labelDiaSemana = document.getElementById("info-dia-semana-teorica-stpu");
-    const corpoTabela = document.getElementById("corpo-tabela-teorica-stpu");
+    const labelDiaSemana = document.getElementById("info-dia-semana-teorica-stu");
+    const corpoTabela = document.getElementById("corpo-tabela-teorica-stu");
 
     if (!selectData || !selectData.value) return;
     const dataSelecionada = selectData.value;

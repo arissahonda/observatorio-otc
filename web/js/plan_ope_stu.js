@@ -292,8 +292,12 @@ function preencherDropdownOperadorasHistorico(dados) {
 }
 
 // =========================================================================
-// 4. FILTROS COMBINADOS E BOTÃO ELÉTRICO
+// 4. FILTROS COMBINADOS
 // =========================================================================
+
+/**
+ * Alterna o estado do botão de filtro de linhas com veículos elétricos.
+ */
 function alternarFiltroEletricoHistorico() {
     filtroEletricoAtivo = !filtroEletricoAtivo;
     const btn = document.getElementById("btn-filtro-eletrico-historico");
@@ -313,6 +317,9 @@ function alternarFiltroEletricoHistorico() {
     aplicarFiltrosHistorico();
 }
 
+/**
+ * Função central de aplicação de filtros (Busca por texto, Operadora e Tecnologia Limpa Inversa).
+ */
 function aplicarFiltrosHistorico() {
     if (!dadosBrutosHistorico || !dadosBrutosHistorico.length) return;
 
@@ -323,14 +330,23 @@ function aplicarFiltrosHistorico() {
     const operadoraSelecionada = selectOp ? selectOp.value.trim().toLowerCase() : "";
     const codigosBusca = termoTexto ? termoTexto.split(',').map(c => c.trim()).filter(Boolean) : [];
 
+    // Mapeia na frota quais linhas possuem veículos com combustível ELÉTRICO
     const codigosLinhasEletricas = new Set();
     const idsLinhasEletricas = new Set();
 
     if (dadosBrutosFrotaSTU && dadosBrutosFrotaSTU.length > 0) {
         dadosBrutosFrotaSTU.forEach(veiculo => {
-            const comb = (veiculo.TIPO_COMBUSTIVEL || veiculo.tipo_combustivel || veiculo.COMBUSTIVEL || veiculo.combustivel || "").toString().toUpperCase();
+            const comb = String(
+                veiculo.TIPO_COMBUSTIVEL || veiculo.tipo_combustivel || 
+                veiculo.COMBUSTIVEL || veiculo.combustivel || ""
+            ).toUpperCase();
+
             if (comb.includes("ELÉTRICO") || comb.includes("ELETRICO") || comb.includes("ELÉTRICA") || comb.includes("ELETRICA")) {
-                const codLinha = String(veiculo.LINHA_CODIGO || veiculo.linha_codigo || veiculo.CODIGO_LINHA || veiculo.codigo_linha || veiculo.LINHA || veiculo.linha || "").toLowerCase().trim();
+                const codLinha = String(
+                    veiculo.LINHA_CODIGO || veiculo.linha_codigo || 
+                    veiculo.CODIGO_LINHA || veiculo.codigo_linha || ""
+                ).toLowerCase().trim();
+                
                 if (codLinha && codLinha !== "null" && codLinha !== "undefined") {
                     codigosLinhasEletricas.add(codLinha);
                 }
@@ -343,22 +359,22 @@ function aplicarFiltrosHistorico() {
         });
     }
 
+    // Filtra os dados da tabela de indicadores cruzando as condições
     const dadosFiltrados = dadosBrutosHistorico.filter(item => {
-        const codigoLinha = (item.LINHA_CODIGO || item.linha_codigo || "").toString().toLowerCase().trim();
+        const codigoLinha = String(item.LINHA_CODIGO || item.linha_codigo || "").toLowerCase().trim();
+        const idLinhaStr = String(item.ID_LINHA || item.id_linha || "").trim();
+
+        // 1. Filtro por itinerário / texto
         const bateuTexto = codigosBusca.length === 0 || codigosBusca.some(busca => codigoLinha.includes(busca));
 
-        const operadora = (item.OPERADORA || item.operadora || "").toString().toLowerCase();
+        // 2. Filtro por operadora
+        const operadora = String(item.OPERADORA || item.operadora || "").toLowerCase();
         const bateuOperadora = !operadoraSelecionada || operadora.includes(operadoraSelecionada);
 
+        // 3. Filtro Inverso: Apenas Linhas c/ Veículos Elétricos na Frota
         let bateuEletrico = true;
         if (filtroEletricoAtivo) {
-            const idLinhaStr = String(item.ID_LINHA || item.id_linha || "").trim();
-            const frotaRealizadaText = (item.FROTA_REALIZADA || item.frota_realizada || "").toString().toUpperCase();
-
-            const temVeiculoEletricoAssociado = codigosLinhasEletricas.has(codigoLinha) || idsLinhasEletricas.has(idLinhaStr);
-            const ehFrotaRealizadaEletrica = frotaRealizadaText.includes("ELÉTRICO") || frotaRealizadaText.includes("ELETRICO");
-
-            bateuEletrico = temVeiculoEletricoAssociado || ehFrotaRealizadaEletrica;
+            bateuEletrico = codigosLinhasEletricas.has(codigoLinha) || idsLinhasEletricas.has(idLinhaStr);
         }
 
         return bateuTexto && bateuOperadora && bateuEletrico;
@@ -374,6 +390,9 @@ function aplicarFiltrosHistorico() {
 function filtrarLinhaHistorico() { aplicarFiltrosHistorico(); }
 function filtrarPorOperadoraHistorico() { aplicarFiltrosHistorico(); }
 
+/**
+ * Reseta todos os filtros e desativa o estado do botão elétrico.
+ */
 function limparFiltrosHistorico() {
     const inputTexto = document.getElementById("input-filtrar-linha-historico");
     const selectOp = document.getElementById("select-operadora-historico");
@@ -383,6 +402,7 @@ function limparFiltrosHistorico() {
     if (selectOp) selectOp.value = "";
 
     filtroEletricoAtivo = false;
+
     if (btnEletrico) {
         btnEletrico.classList.remove("btn-success", "text-white");
         btnEletrico.classList.add("btn-outline-success");

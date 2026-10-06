@@ -109,10 +109,8 @@ html, body {
 }
 
 /* LADO A LADO: Força o layout em linha (Horizontal) para as sub-abas ativas */
-#sub-stpc.tab-pane.active,
-#sub-stpcr.tab-pane.active,
-#sub-teorica-stpc.tab-pane.active,
-#sub-teorica-stpcr.tab-pane.active {
+#sub-stu.tab-pane.active,
+#sub-teorica-stpu.tab-pane.active {
     display: flex !important;
     flex-direction: row !important; /* Filtros à Esquerda, Conteúdo à Direita */
     width: 100% !important;
@@ -126,9 +124,7 @@ html, body {
 
 #barra-lateral,
 #barra-lateral-historico,
-#barra-lateral-stpcr,
-#barra-lateral-teorica-stpc,
-#barra-lateral-teorica-stpcr,
+#barra-lateral-teorica-stu,
 #barra-lateral-pico,
 .barra-lateral-filtro {
     width: 340px !important;
@@ -149,9 +145,7 @@ html, body {
 
 #conteudo-principal-mapa,
 #conteudo-principal-historico,
-#conteudo-principal-stpcr,
-#conteudo-principal-teorica-stpc,
-#conteudo-principal-teorica-stpcr {
+#conteudo-principal-teorica-stu {
     flex: 1 !important;
     width: calc(100% - 340px) !important;
     min-width: 0 !important;
@@ -163,9 +157,7 @@ html, body {
 
 #conteudo-superior,
 #conteudo-superior-historico,
-#conteudo-superior-stpcr,
-#conteudo-superior-teorica-stpc,
-#conteudo-superior-teorica-stpcr {
+#conteudo-superior-teorica-stu {
     display: flex !important;
     width: 100% !important;
     height: 450px !important;
@@ -175,9 +167,8 @@ html, body {
 
 #mapa,
 #mapa-historico,
-#mapa-stpcr,
-#mapa-teorica-stpc,
-#mapa-teorica-stpcr { 
+#mapa-teorica-stu,
+#mapa-teorica-stu { 
     width: 100% !important;
     height: 100% !important;
     cursor: crosshair; 
@@ -252,7 +243,6 @@ html, body {
 }
 
 #graficoHistoricoMensal,
-#graficoSTPCRMensal,
 #graficoCombustivelFrota {
     width: 100% !important;
     height: 100% !important;
