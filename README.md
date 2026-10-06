@@ -73,7 +73,7 @@ Este repositório contém a arquitetura da plataforma de dados, pipeline de ETL 
 Para superar a heterogeneidade das fontes legadas e viabilizar a modelagem dimensional do painel, foi desenvolvida a arquitetura de uma **Chave Primária Sintética Universal**. Esta abordagem resolve os conflitos de cardinalidade e padroniza a granularidade dos dados entre os sistemas de planejamento, bilhetagem e geoprocessamento:
 
 ```text
-[Chave Primária Universal] = [Código do Serviço (4 dígitos)] + [Sentido Operacional (1 dígito)] + [Identificador da Região/Bacia (1 dígito)]
+[Chave Primária Universal] = [Código do Serviço] + [Sentido Operacional] + [Identificador da Região]
 ```
 
 #### 3. Segregação por Modais
