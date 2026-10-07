@@ -239,9 +239,9 @@ async function carregarDadosHistoricoPorData(modal = 'stu') {
 
     try {
         const [respLinhas, respFrota] = await Promise.all([
-            fetch(`${URL_API_STU}/indicadores/historico-completo?data=${encodeURIComponent(dataSelecionada)}&modal=${encodeURIComponent(modal)}`),
-            fetch(`${URL_API_STU}/frota/historico-pico?data_pico=${encodeURIComponent(dataSelecionada)}`)
-        ]);
+        fetch(`${URL_API_STU}/indicadores/historico-completo?data=${encodeURIComponent(dataSelecionada)}&modal=stu`),
+        fetch(`${URL_API_STU}/frota/historico-pico?data_pico=${encodeURIComponent(dataSelecionada)}`)
+    ]);
 
         const jsonLinhas = await respLinhas.json();
         const jsonFrota = await respFrota.json();

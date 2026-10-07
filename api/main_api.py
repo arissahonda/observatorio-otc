@@ -91,34 +91,34 @@ def carregar_dados_no_cache():
             'total_linhas', COUNT(*),
             'dados', COALESCE(json_agg(
                 json_build_object(
-                    'LINHA_CODIGO', sit."LINHA_CODIGO",
-                    'LINHA_DENOMINACAO', sit."LINHA_DENOMINACAO",
-                    'OPERADORA', sit."OPERADORA",
-                    'BACIA_OPERACAO', sit."BACIA_OPERACAO",
+                    'LINHA_CODIGO', sph."LINHA_CODIGO",
+                    'LINHA_DENOMINACAO', sph."LINHA_DENOMINACAO",
+                    'OPERADORA', sph."OPERADORA",
+                    'BACIA_OPERACAO', sph."BACIA_OPERACAO",
                     'SENTIDO_TRADUZIDO', CASE 
-                        WHEN CAST(sit."SENTIDO_JOIN" AS VARCHAR) = '1' THEN 'IDA'
-                        WHEN CAST(sit."SENTIDO_JOIN" AS VARCHAR) = '2' THEN 'VOLTA'
-                        WHEN CAST(sit."SENTIDO_JOIN" AS VARCHAR) = '3' THEN 'CIRCULAR'
-                        ELSE CAST(sit."SENTIDO_JOIN" AS VARCHAR)
+                        WHEN CAST(sph."SENTIDO_JOIN" AS VARCHAR) = '1' THEN 'IDA'
+                        WHEN CAST(sph."SENTIDO_JOIN" AS VARCHAR) = '2' THEN 'VOLTA'
+                        WHEN CAST(sph."SENTIDO_JOIN" AS VARCHAR) = '3' THEN 'CIRCULAR'
+                        ELSE CAST(sph."SENTIDO_JOIN" AS VARCHAR)
                     END,
-                    'TIPO_DIA', sit."TIPO_DIA",
-                    'FLG_DIA_ATUAL', sit."FLG_DIA_ATUAL",
-                    'FROTA_PLANEJADA', sit."FROTA_PLANEJADA",
-                    'VIAGENS_PLANEJADAS', sit."VIAGENS_PLANEJADAS",
-                    'DURACAO', sit."DURACAO",
-                    'HW_OPERADOR', sit."HW_OPERADOR",
-                    'HW_PASSAGEIRO', sit."HW_PASSAGEIRO",
-                    'EXTENSAO_KM', sit."EXTENSAO_KM",
-                    'PRODUCAO_KM', sit."PRODUCAO_KM",
-                    'FROTA_ALOCADA', sit."FROTA_ALOCADA",
-                    'FROTA_REAPROVEITADA', sit."FROTA_REAPROVEITADA",
-                    'TARIFA_USUARIO', sit."TARIFA_USUARIO",
-                    'TARIFA_TECNICA', sit."TARIFA_TECNICA",
-                    'ID_LINHA', sit."ID_LINHA",
+                    'TIPO_DIA', sph."TIPO_DIA",
+                    'FLG_DIA_ATUAL', sph."FLG_DIA_ATUAL",
+                    'FROTA_PLANEJADA', sph."FROTA_PLANEJADA",
+                    'VIAGENS_PLANEJADAS', sph."VIAGENS_PLANEJADAS",
+                    'DURACAO', sph."DURACAO",
+                    'HW_OPERADOR', sph."HW_OPERADOR",
+                    'HW_PASSAGEIRO', sph."HW_PASSAGEIRO",
+                    'EXTENSAO_KM', sph."EXTENSAO_KM",
+                    'PRODUCAO_KM', sph."PRODUCAO_KM",
+                    'FROTA_ALOCADA', sph."FROTA_ALOCADA",
+                    'FROTA_REAPROVEITADA', sph."FROTA_REAPROVEITADA",
+                    'TARIFA_USUARIO', sph."TARIFA_USUARIO",
+                    'TARIFA_TECNICA', sph."TARIFA_TECNICA",
+                    'ID_LINHA', sph."ID_LINHA",
                     'geojson_geom', CASE 
-                        WHEN sit.geom IS NOT NULL THEN
+                        WHEN sph.geom IS NOT NULL THEN
                             ST_AsGeoJSON(
-                                ST_Transform(ST_SetSRID(sit.geom, 31983), 4326),
+                                ST_Transform(ST_SetSRID(sph.geom, 31983), 4326),
                                 5
                             )::json
                         ELSE NULL
@@ -126,8 +126,8 @@ def carregar_dados_no_cache():
                 )
             ), '[]'::json)
         )::text AS json_completo
-        FROM "bd_git"."snp_planejamento_hoje" sit
-        WHERE CAST(sit."FLG_DIA_ATUAL" AS VARCHAR) = '1';
+        FROM "bd_git"."snp_planejamento_hoje" sph
+        WHERE CAST(sph."FLG_DIA_ATUAL" AS VARCHAR) = '1';
     """)
 
     try:
@@ -305,12 +305,12 @@ def obter_datas_disponiveis(tabela: str = Query("pico"), modal: str = Query("stu
 
     if "teorica" in modal_limpo or tabela == "pico_teorica":
         nome_tabela_sql = "hist_ind_simplificado_pico_stu"
-    elif tabela in ["metro", "tdmax"]:
+    elif tabela in ["metro"]:
         nome_tabela_sql = "hist_faixa_horaria_metro"
     else:
         nome_tabela_sql = "hist_ind_consolidados_pico_stu"
 
-    col_data = "DATA_REFERENCIA" if tabela in ["metro", "tdmax"] else "DATA_PICO"
+    col_data = "DATA_REFERENCIA" if tabela in ["metro"] else "DATA_PICO"
 
     engine = obter_engine_banco()
     if not engine:
@@ -429,7 +429,7 @@ def obter_historico_completo(
     modal: str = Query("stu")
 ):
     data_limpa = data.strip() if data else ""
-    modal_limpo = validar_modal(modal)
+    modal_limpo = modal.lower().strip() if modal else "stu"
     chave_cache = f"{data_limpa}_{modal_limpo}"
 
     if chave_cache in CACHE_HISTORICO_COMPLETO:
@@ -439,6 +439,7 @@ def obter_historico_completo(
     if not engine:
         return JSONResponse(status_code=500, content={"sucesso": False, "erro": "Sem conexão com o banco de dados."})
 
+    # Se contiver 'teorica', direciona para a tabela simplificada; caso contrário, para a consolidada
     if "teorica" in modal_limpo:
         nome_tabela = "hist_ind_simplificado_pico_stu"
     else:

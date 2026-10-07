@@ -219,7 +219,7 @@ async function carregarDadosTeoricaSTUPorData() {
     }
 
     try {
-        const resp = await fetch(`${URL_API_TEORICA}/indicadores/historico-completo?data=${encodeURIComponent(dataSelecionada)}&modal=stu_teorica`);
+        const resp = await fetch(`${URL_API_STU}/indicadores/historico-completo?data=${encodeURIComponent(dataSelecionada)}&modal=stu_teorica`);
         const json = await resp.json();
 
         if (json.sucesso && json.dados) {
