@@ -59,7 +59,7 @@
         <div class="tab-pane fade show active h-100" id="aba-mapa" role="tabpanel">
             <div class="d-flex flex-row h-100">
                 
-                <!-- 1. BARRA LATERAL ESQUERDA (ESTENDE-SE ATÉ O RODAPÉ DA TELA) -->
+                <!-- 1. BARRA LATERAL ESQUERDA -->
                 <div id="barra-lateral">
                     <h6 class="fw-bold text-primary mb-3">Controles de Seleção</h6>
                     
@@ -127,7 +127,15 @@
                         <b>Linhas carregadas:</b> <span id="qtd-total-linhas">0</span><br>
                         <b>Linhas filtradas:</b> <span id="qtd-linhas-selecionadas" class="fw-bold text-primary">0</span>
                     </div>
+                    <!-- CARD EXPLICATIVO: PLANEJAMENTO DO DIA -->
+                    <div class="card p-2 shadow-sm border-start border-4 border-primary bg-light mb-3">
+                        <h6 class="fw-bold mb-1 small text-primary">📌 Sobre esta visão</h6>
+                        <p class="small text-muted m-0" style="font-size: 0.74rem; line-height: 1.35; text-align: justify;">
+                            Apresenta a matriz de oferta programada para a operação. Ferramenta dedicada ao mapeamento da distribuição espacial das linhas e à identificação da capacidade de atendimento por vias e corredores do sistema.
+                        </p>
+                    </div>
                 </div>
+
 
                 <!-- 2. COLUNA DA DIREITA: MAPA + DIVISOR + PAINEL INFERIOR COM ROLAGEM -->
                 <div id="conteudo-principal-mapa" class="d-flex flex-column flex-grow-1 h-100 overflow-y-auto">
@@ -280,6 +288,13 @@
                                 <input class="form-check-input" type="checkbox" id="check-terminais-stu" onchange="alternarCamadaEstaticaHistorico('tb_terminais', this.checked)">
                                 <label class="form-check-label small" for="check-terminais-stu">Terminais de Ônibus</label>
                             </div>
+                        </div>
+                        <!-- CARD EXPLICATIVO: PLANEJADO VS OPERADO -->
+                        <div class="card p-2 shadow-sm border-start border-4 border-primary bg-light mb-3 mt-3">
+                            <h6 class="fw-bold mb-1 small text-primary">📌 Sobre esta visão</h6>
+                            <p class="small text-muted m-0" style="font-size: 0.74rem; line-height: 1.35; text-align: justify;">
+                                Módulo analítico para acompanhamento da execução operacional. Compara a oferta programada com os dados de monitoramento e bilhetagem, gerando indicadores essenciais para aferir a eficiência e a racionalidade da rede, fundamentando calibrações nas Ordens de Serviço (OS).
+                            </p>
                         </div>
                     </div>
 
@@ -641,6 +656,13 @@
                                 <label class="form-check-label small" for="check-terminais-teorica-stu">Terminais de Ônibus</label>
                             </div>
                         </div>
+                        <!-- CARD EXPLICATIVO: OPERAÇÃO TEÓRICA -->
+                        <div class="card p-2 shadow-sm border-start border-4 border-primary bg-light mb-3 mt-3">
+                            <h6 class="fw-bold mb-1 small text-primary">📌 Sobre esta visão</h6>
+                            <p class="small text-muted m-0" style="font-size: 0.74rem; line-height: 1.35; text-align: justify;">
+                                Análise do dimensionamento conceitual da rede frente à demanda do sistema. Permite avaliar o comportamento da oferta em condições ideais de planejamento, isolando oscilações e contingências operacionais do dia a dia.
+                            </p>
+                        </div>
                     </div>
 
                     <!-- 2. COLUNA DA DIREITA: MAPA + DIVISOR + PAINEL INFERIOR -->
@@ -862,12 +884,19 @@
                             <span id="badge-vistoria-vencida" class="badge bg-danger fs-7">0</span>
                         </div>
                     </div>
-
+                    <!-- CARD EXPLICATIVO: ANÁLISE DE FROTA -->
+                    <div class="card p-2 shadow-sm border-start border-4 border-primary bg-light mb-3">
+                        <h6 class="fw-bold mb-1 small text-primary">📌 Sobre esta visão</h6>
+                        <p class="small text-muted m-0" style="font-size: 0.74rem; line-height: 1.35; text-align: justify;">
+                            Painel cadastral e de perfil tecnológico dos veículos. Facilita o acompanhamento das características da frota operante e possibilita o controle preventivo dos ciclos de vistoria técnica e conformidade regulamentar.
+                        </p>
+                    </div>
                     <!-- CARD FIXO NA BARRA LATERAL: EXPLICAÇÃO DA CAPACIDADE FINAL (NBR 15570) -->
                     <div class="card p-2 shadow-sm border-start border-4 border-primary bg-light">
                         <h6 class="fw-bold mb-1 small text-primary">ℹ️ Cálculo da Capacidade Final</h6>
                         <p class="small text-muted m-0" style="font-size: 0.74rem; line-height: 1.35; text-align: justify;">
-                            A análise foi realizada considerando a quantidade de assentos cadastrados mais a quantidade de passageiros em pé considerando a área útil, que utilizou os parâmetros da norma <strong>ABNT NBR 15570</strong> para estabelecer quantos passageiros pode ter em pé por metro quadrado para cada tipo de veículo. Caso o cadastro não estivesse dentro dos parâmetros mínimos estabelecidos pela norma, assume-se a capacidade padrão da ABNT.
+                            Metodologia: Soma dos assentos físicos cadastrados com a capacidade de passageiros em pé, calculada a partir da área útil do salão e da densidade por m² estipulada pela NBR 15570 para cada tipo de veículo.
+                            Trava de Segurança: Diante de pendências cadastrais ou valores inferiores ao limite mínimo regulamentar, adota-se automaticamente a capacidade padrão de referência da ABNT.
                         </p>
                     </div>
                 </div>
@@ -1059,6 +1088,13 @@
                             <strong class="text-danger mb-1 d-block" style="font-size: 0.75rem;">🔴 Top 5 Menos Acessadas:</strong>
                             <ol class="m-0 ps-3" id="lista-low-estacoes-metro" style="font-size: 0.75rem;"></ol>
                         </div>
+                    </div>
+                    <!-- CARD EXPLICATIVO: METRÔ -->
+                    <div class="card p-2 shadow-sm border-start border-4 border-primary bg-light mb-3 mt-3">
+                        <h6 class="fw-bold mb-1 small text-primary">📌 Sobre esta visão</h6>
+                        <p class="small text-muted m-0" style="font-size: 0.74rem; line-height: 1.35; text-align: justify;">
+                            Visão macro do comportamento da demanda no transporte sobre trilhos. Permite mensurar a dinâmica de integração e o volume de carregamento do sistema metroviário, avaliando seus reflexos no planejamento do transporte público rodoviário.
+                        </p>
                     </div>
                 </div>
 

@@ -454,13 +454,19 @@ def obter_historico_completo(
             'total_passageiros', COALESCE(SUM(hist."TOTAL_PASSAGEIROS"), 0),
             'dados', COALESCE(
                 json_agg(
-                    (to_jsonb(hist.*) - 'geom') || jsonb_build_object(
+                    (to_jsonb(hist.*) - 'geometry' - 'geom') || jsonb_build_object(
                         'ID_LINHA', hist."ID_LINHA",
                         'geojson_geom', CASE 
-                            WHEN hist.geom IS NOT NULL THEN
+                            WHEN COALESCE(hist.geometry, hist.geom) IS NOT NULL THEN
                                 ST_AsGeoJSON(
                                     ST_Transform(
-                                        ST_SetSRID(ST_SimplifyPreserveTopology(ST_MakeValid(hist.geom), 10), 31983), 
+                                        ST_SetSRID(
+                                            ST_SimplifyPreserveTopology(
+                                                ST_MakeValid(COALESCE(hist.geometry, hist.geom)), 
+                                                10
+                                            ), 
+                                            31983
+                                        ), 
                                         4326
                                     ), 4
                                 )::jsonb

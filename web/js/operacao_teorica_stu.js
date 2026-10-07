@@ -67,13 +67,26 @@ const COLUNAS_TEORICA_GRUPO = {
         { chave: 'LINHA_DENOMINACAO', checado: true },
         { chave: 'SENTIDO', checado: true },
         { chave: 'OPERADORA', checado: true },
-        { chave: 'BACIA_OPERACAO', checado: true },
+        { chave: 'BACIA_OPERACAO', checado: false },
         { chave: 'MOTIVO_SEM_GEOMETRIA', checado: true },
+        { chave: 'DATA_PICO', checado: false },
+        { chave: 'DIA_SEMANA', checado: false },
+        { chave: 'DIAS_UTEIS_MES', checado: false },
+        { chave: 'FROTA_ALOCADA', checado: false },
+        { chave: 'FROTA_REAPROVEITADA', checado: false },
         { chave: 'FROTA_PLANEJADA', checado: true },
+        { chave: 'DURACAO', checado: false },
+        { chave: 'HORAS_DIA', checado: false },
+        { chave: 'VELOCIDADE_MEDIA', checado: false },
         { chave: 'VIAGENS_PLANEJADAS', checado: true },
-        { chave: 'EXTENSAO_KM', checado: true },
-        { chave: 'KM_DIA', checado: true },
-        { chave: 'LUGARES_OFERTADOS', checado: true }
+        { chave: 'HW_OPERADOR', checado: false },
+        { chave: 'HW_PASSAGEIRO', checado: false },
+        { chave: 'EXTENSAO_KM', checado: false },
+        { chave: 'KM_DIA', checado: false },
+        { chave: 'KM_MES', checado: false },
+        { chave: 'KM_ANO', checado: false },
+        { chave: 'LUGARES_OFERTADOS', checado: false },
+        { chave: 'LUGARES_VIAGEM', checado: false }
     ],
     'grupo-colunas-demanda': [
         { chave: 'TOTAL_PASSAGEIROS', checado: true },
@@ -88,10 +101,18 @@ const COLUNAS_TEORICA_GRUPO = {
         { chave: 'IRP', checado: false },
         { chave: 'DEMANDA_OFERTA', checado: true }
     ],
-    'grupo-colunas-financeiro': [
-        { chave: 'CUSTO_SERVICO', checado: true },
+     'grupo-colunas-financeiro': [
+        { chave: 'TARIFA_USUARIO', checado: false },
+        { chave: 'TARIFA_TECNICA', checado: false },
         { chave: 'ARRECADACAO_DIA', checado: true },
-        { chave: 'VALOR_SUBSIDIO', checado: true }
+        { chave: 'CUSTO_SERVICO', checado: false },
+        { chave: 'VALOR_SUBSIDIO', checado: false },
+        { chave: 'RECEITA_VIAGEM', checado: false },
+        { chave: 'RECEITA_VEICULO', checado: false },
+        { chave: 'RECEITA_KM', checado: false },
+        { chave: 'IPK', checado: true },
+        { chave: 'IRP', checado: false },
+        { chave: 'DEMANDA_OFERTA', checado: false }
     ]
 };
 
