@@ -439,12 +439,13 @@ def obter_historico_completo(
     if not engine:
         return JSONResponse(status_code=500, content={"sucesso": False, "erro": "Sem conexão com o banco de dados."})
 
-    # Se o modal indicar 'teorica', direciona para a tabela simplificada; caso contrário, para a de histórico consolidado STU
+    # Seleção da tabela com base no modal recebido
     if "teorica" in modal_limpo:
         nome_tabela = "hist_ind_simplificado_pico_stu"
     else:
         nome_tabela = "hist_ind_consolidados_pico_stu"
 
+    # Consulta SQL ajustada estritamente para a coluna padronizada 'geom'
     query = text(f"""
         SELECT json_build_object(
             'sucesso', true,
@@ -455,15 +456,15 @@ def obter_historico_completo(
             'total_passageiros', COALESCE(SUM(hist."TOTAL_PASSAGEIROS"), 0),
             'dados', COALESCE(
                 json_agg(
-                    (to_jsonb(hist.*) - 'geometry' - 'geom') || jsonb_build_object(
+                    (to_jsonb(hist.*) - 'geom') || jsonb_build_object(
                         'ID_LINHA', hist."ID_LINHA",
                         'geojson_geom', CASE 
-                            WHEN COALESCE(hist.geometry, hist.geom) IS NOT NULL THEN
+                            WHEN hist.geom IS NOT NULL THEN
                                 ST_AsGeoJSON(
                                     ST_Transform(
                                         ST_SetSRID(
                                             ST_SimplifyPreserveTopology(
-                                                ST_MakeValid(COALESCE(hist.geometry, hist.geom)), 
+                                                ST_MakeValid(hist.geom), 
                                                 10
                                             ), 
                                             31983
