@@ -439,7 +439,7 @@ def obter_historico_completo(
     if not engine:
         return JSONResponse(status_code=500, content={"sucesso": False, "erro": "Sem conexão com o banco de dados."})
 
-    # Se contiver 'teorica', direciona para a tabela simplificada; caso contrário, para a consolidada
+    # Se o modal indicar 'teorica', direciona para a tabela simplificada; caso contrário, para a de histórico consolidado STU
     if "teorica" in modal_limpo:
         nome_tabela = "hist_ind_simplificado_pico_stu"
     else:

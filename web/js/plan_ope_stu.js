@@ -133,7 +133,7 @@ const COLUNAS_POR_GRUPO = {
         { chave: 'PERC_ESTUDANTES', checado: false }
     ],
     'grupo-colunas-financeiro': [
-        { chave: 'TARIFA_USUARIO', checado: false },
+        { chave: 'TARIFA_USUARIO', checado: true },
         { chave: 'TARIFA_TECNICA', checado: false },
         { chave: 'ARRECADACAO_DIA', checado: true },
         { chave: 'CUSTO_SERVICO', checado: false },
