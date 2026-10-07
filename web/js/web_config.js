@@ -4,4 +4,4 @@
  */
 const API_URL = (typeof window.ENV_API_URL !== 'undefined') 
     ? window.ENV_API_URL 
-    : "https://api-observatorio-otc.onrender.com/api/v1";
+    : "https://observatorio-otc.onrender.com/api/v1";

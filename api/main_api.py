@@ -165,11 +165,18 @@ app = FastAPI(
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
+# Origens que têm permissão de consultar a API
+origens_permitidas = [
+    "http://127.0.0.1:5500",                  # Seu Live Server local
+    "http://localhost:5500",                  # Seu Live Server (endereço alternativo)
+    "https://arissahonda.github.io"           # URL pública do seu painel no GitHub Pages
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origens_permitidas,         
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET"],                 
     allow_headers=["*"],
 )
 
