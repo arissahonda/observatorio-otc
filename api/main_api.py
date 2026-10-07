@@ -1,7 +1,7 @@
 """
 =============================================================================
 Módulo: main_api.py
-Descrição: API RESTful do Painel OTPC conectada ao Supabase (Esquema bd_git).
+Descrição: API RESTful do Painel OTC conectada ao Supabase (Esquema bd_git).
            - Padronizado para utilizar estritamente a coluna de feição 'geom'.
            - Credenciais 100% ocultas e lidas via arquivo de ambiente (.env).
 =============================================================================
@@ -158,7 +158,7 @@ async def lifespan(app: FastAPI):
 # 4. APLICAÇÃO FASTAPI
 # =============================================================================
 app = FastAPI(
-    title="API Painel OTPC", 
+    title="API Painel OTC", 
     version="2.7.0",
     lifespan=lifespan
 )

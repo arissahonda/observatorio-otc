@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Observatório do Transporte Público Coletivo | OTPC</title>
+    <title>Observatório do Transporte Coletivo | OTC</title>
 
     <!-- 1. Estilos de Bibliotecas Externas -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -19,7 +19,7 @@
     <!-- CABEÇALHO DO SISTEMA -->
     <div id="cabecalho-sistema">
         <div class="d-flex justify-content-between align-items-center mb-2">
-            <h5 class="m-0 fw-bold">🚍 Observatório do Transporte Público Coletivo | OTPC</h5>
+            <h5 class="m-0 fw-bold">🚍 Observatório do Transporte Coletivo | OTC</h5>
         </div>
         
         <!-- MENU SUPERIOR DE ABAS PRINCIPAIS -->
@@ -503,7 +503,7 @@
                                     <table class="table table-sm table-hover align-middle m-0" id="tabela-frota-stu">
                                         <thead class="table-light sticky-top">
                                             <tr>
-                                                <th>Prefixo</th>
+                                                <th>ID Veículo</th>
                                                 <th>Placa</th>
                                                 <th>Operadora</th> <!-- NOVA COLUNA ADICIONADA -->
                                                 <th>Linha</th>
@@ -814,11 +814,11 @@
                 <div id="barra-lateral-frota" class="barra-lateral-filtro">
                     <h6 class="fw-bold text-primary mb-3">🚛 Filtros da Frota</h6>
                     
-                    <!-- Busca por Prefixo ou Placa -->
+                    <!-- Busca por ID do Veículo ou Placa -->
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Buscar Veículo:</label>
                         <div class="input-group input-group-sm mb-1">
-                            <input type="text" id="input-busca-frota" class="form-control" placeholder="Prefixo ou Placa..." onkeyup="if(event.key==='Enter') aplicarFiltrosFrota()">
+                            <input type="text" id="input-busca-frota" class="form-control" placeholder="ID do Veículo ou Placa..." onkeyup="if(event.key==='Enter') aplicarFiltrosFrota()">
                             <button class="btn btn-primary fw-bold" onclick="aplicarFiltrosFrota()">Buscar</button>
                         </div>
                     </div>
@@ -1015,7 +1015,7 @@
                             <table id="tabela-frota-modulo" class="table table-striped table-hover align-middle m-0">
                                 <thead class="table-dark">
                                     <tr>
-                                        <th>Prefixo</th>
+                                        <th>ID do Veículo</th>
                                         <th>Placa</th>
                                         <th>Operadora</th>
                                         <th>Marca / Modelo</th>
@@ -1093,7 +1093,7 @@
                     <div class="card p-2 shadow-sm border-start border-4 border-primary bg-light mb-3 mt-3">
                         <h6 class="fw-bold mb-1 small text-primary">📌 Sobre esta visão</h6>
                         <p class="small text-muted m-0" style="font-size: 0.74rem; line-height: 1.35; text-align: justify;">
-                            Visão macro do comportamento da demanda no transporte sobre trilhos. Permite mensurar a dinâmica de integração e o volume de carregamento do sistema metroviário, avaliando seus reflexos no planejamento do transporte público rodoviário.
+                            Visão macro do comportamento da demanda no transporte sobre trilhos. Permite mensurar a dinâmica de integração e o volume de carregamento do sistema metroviário, avaliando seus reflexos no planejamento do transporte coletivo rodoviário.
                         </p>
                     </div>
                 </div>
@@ -1184,6 +1184,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
+<script src="js/web_config.js"></script>
 <script src="js/mapa_base.js"></script>
 <script src="js/camadas_apoio.js"></script>
 <script src="js/funcoes_tabela.js"></script>

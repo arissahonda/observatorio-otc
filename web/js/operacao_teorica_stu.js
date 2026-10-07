@@ -5,7 +5,7 @@
  * incluindo seleção de métricas por grupo, formatação percentual, badges de geometria e gráfico anual.
  */
 
-const URL_API_TEORICA = (typeof API_URL !== 'undefined') ? API_URL : "http://localhost:8000/api/v1";
+const URL_API_TEORICA = API_URL;
 
 // 1. DICIONÁRIO COMPLETO DE RÓTULOS (INCLUINDO PERCENTUAIS E PADRONIZAÇÃO DE GEOMETRIA)
 const ROTULOS_TEORICA = {

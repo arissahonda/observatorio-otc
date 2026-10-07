@@ -5,7 +5,7 @@
  *            interativo e exportação para Excel.
  */
 
-const URL_API_METRO = (typeof API_URL !== 'undefined') ? API_URL : "http://localhost:8000/api/v1";
+const URL_API_METRO = API_URL;
 
 let mapaMetro = null;
 let camadaLinhasMetro = null;
@@ -666,7 +666,7 @@ window.exportarTabelaExcelMetro = function () {
     const dataAtual = (selectData && selectData.value) ? selectData.value : "Geral";
 
     const metadados = [
-        ["OBSERVATÓRIO DO TRANSPORTE PÚBLICO COLETIVO - OTPC"],
+        ["OBSERVATÓRIO DO TRANSPORTE COLETIVO - OTC"],
         ["RELATÓRIO DE CARREGAMENTO DO METRÔ"],
         [`Estação: ${nomeEstacao}`],
         [`Data de Pico: ${dataAtual}`],

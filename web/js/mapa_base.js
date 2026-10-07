@@ -3,7 +3,6 @@
  * Descrição: Centraliza a inicialização do mapa Leaflet com servidor OpenStreetMap (OSM).
  */
 
-const API_URL = "https://api-observatorio-otpc.onrender.com/api/v1";
 
 /**
  * Cria e inicializa um mapa Leaflet focado em ultra-performance de carregamento.

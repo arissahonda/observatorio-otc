@@ -5,7 +5,7 @@
  *            filtro sincronizado de veículos elétricos, indicadores de frota e gráficos.
  */
 
-const URL_API_STU = (typeof API_URL !== 'undefined') ? API_URL : "http://localhost:8000/api/v1";
+const URL_API_STU = API_URL;
 
 // Variáveis Globais do STU
 let mapaHistorico = null;
@@ -695,12 +695,12 @@ function calcularECardsFrotaSTU(frotaFiltrada) {
     const contagemCombustivel = {};
 
     frotaFiltrada.forEach(item => {
-        const prefixo = item.PREFIXO || item.prefixo || item.NR_PLACA || item.nr_placa;
+        const id_veiculo = item.ID_VEICULO || item.id_veiculo || item.NR_PLACA || item.nr_placa;
         const km = parseFloat(item.KM_ESTIMADO_VEICULO || item.km_estimado_veiculo || 0);
         if (!isNaN(km)) kmTotalEstimada += km;
 
-        if (prefixo && !veiculosUnicos.has(prefixo)) {
-            veiculosUnicos.add(prefixo);
+        if (id_veiculo && !veiculosUnicos.has(id_veiculo)) {
+            veiculosUnicos.add(id_veiculo);
 
             const anoFab = parseInt(item.ANO_FABRICACAO || item.ano_fabricacao || item.ANO_VEICULO || 0, 10);
             const idadeDireta = parseInt(item.IDADE_VEICULO || item.idade_veiculo || 0, 10);
@@ -904,7 +904,7 @@ function renderizarTabelaFrotaSTU(linhasVisiveis) {
 
     frotaFiltrada.forEach(item => {
         try {
-            const prefixo = item.PREFIXO || item.prefixo || '-';
+            const id_veiculo = item.ID_VEICULO || item.id_veiculo || '-';
             const placa = item.NR_PLACA || item.nr_placa || 'SEM PLACA';
             
             const idVeiculoStr = String(item.ID_LINHA || item.id_linha || '');
@@ -937,7 +937,7 @@ function renderizarTabelaFrotaSTU(linhasVisiveis) {
             const codigoLinhaExibicao = linhaRef ? (linhaRef.LINHA_CODIGO || linhaRef.linha_codigo || '-') : (item.LINHA_CODIGO || item.linha_codigo || '-');
             const sentidoExibicao = linhaRef ? (linhaRef.SENTIDO || linhaRef.sentido || '-') : '-';
 
-            veiculosUnicos.add(prefixo);
+            veiculosUnicos.add(id_veiculo);
 
             let badgeVistoria = `<span class="badge bg-success">${situacaoVistoria}</span>`;
             if (situacaoVistoria.toUpperCase().includes('VENCIDA')) {
@@ -950,7 +950,7 @@ function renderizarTabelaFrotaSTU(linhasVisiveis) {
 
             htmlBody += `
                 <tr>
-                    <td><b>${prefixo}</b></td>
+                    <td><b>${id_veiculo}</b></td>
                     <td><span class="badge bg-light text-dark border">${placa}</span></td>
                     <td><span class="badge bg-outline-primary text-dark border">${operadora}</span></td>
                     <td><span class="badge bg-success">${codigoLinhaExibicao}</span></td>

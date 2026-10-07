@@ -5,7 +5,7 @@
  */
 
 (function () {
-    const URL_API_FROTA = (typeof API_URL !== 'undefined') ? API_URL : "http://localhost:8000/api/v1";
+    const URL_API_FROTA = API_URL;
     const ENDPOINT_SNAPSHOT_CADASTRO = `${URL_API_FROTA}/frota/snapshot-cadastro`;
 
     // Cache local de dados
@@ -143,7 +143,7 @@
         const baciasRURAL = ['7'];
 
         const filtrados = dadosSnapshotCache.filter(v => {
-            const prefixo = String(v.prefixo || v.PREFIXO || "").toUpperCase();
+            const id_veiculo = String(v.id_veiculo || v.ID_VEICULO || "").toUpperCase();
             const placa = String(v.nr_placa || v.NR_PLACA || "").toUpperCase();
             const numBacia = extrairNumeroBacia(v);
             const op = String(v.operadora || v.OPERADORA || "");
@@ -154,8 +154,8 @@
             const diasVenc = parseInt(v.dias_para_vencimento ?? v.DIAS_PARA_VENCIMENTO ?? 999, 10);
             const idade = parseInt(v.idade_veiculo ?? v.IDADE_VEICULO ?? 0, 10);
 
-            // 1. Filtro Texto (Prefixo ou Placa)
-            const matchBusca = !busca || prefixo.includes(busca) || placa.includes(busca);
+            // 1. Filtro Texto (ID do veículo ou Placa)
+            const matchBusca = !busca || id_veiculo.includes(busca) || placa.includes(busca);
 
             // 2. Filtro agrupado por STU (1 a 5) e RURAL (7)
             let matchSistema = true;
@@ -524,7 +524,7 @@
         }
 
         corpo.innerHTML = dados.map(v => {
-            const prefixo = v.prefixo || v.PREFIXO || '-';
+            const id_veiculo = v.id_veiculo || v.ID_VEICULO || '-';
             const placa = v.nr_placa || v.NR_PLACA || '-';
             const operadora = v.operadora || v.OPERADORA || '-';
             const marca = v.marca || v.MARCA || '';
@@ -551,7 +551,7 @@
 
             return `
                 <tr>
-                    <td><strong>${prefixo}</strong></td>
+                    <td><strong>${id_veiculo}</strong></td>
                     <td>${placa}</td>
                     <td>${operadora}</td>
                     <td>${marca} ${modelo}</td>
