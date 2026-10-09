@@ -817,7 +817,7 @@ function renderizarGraficoCombustivelFrota(dadosCombustivel) {
 // =========================================================================
 
 /**
- * Renderiza a tabela de detalhamento da frota física operante.
+ * Renderiza a tabela de detalhamento da frota física operante com suporte a MÚLTIPLAS LINHAS.
  * @param {Array} linhasVisiveis - Lista de linhas atualmente filtradas na tela.
  */
 function renderizarTabelaFrotaSTU(linhasVisiveis) {
@@ -830,8 +830,6 @@ function renderizarTabelaFrotaSTU(linhasVisiveis) {
     
     if (!tbody) return;
 
-    // 🛑 TRAVA ESPECIAL: Se o filtro de "Não Operadas" estiver ativo, 
-    // a frota física operante é ZERO por definição, pois nenhuma viagem foi realizada.
     if (typeof filtroNaoOperadoAtivo !== 'undefined' && filtroNaoOperadoAtivo) {
         tbody.innerHTML = '<tr><td colspan="15" class="text-center text-muted py-3">🚫 Nenhuma frota operou nas linhas selecionadas.</td></tr>';
         listaFrotaSTUFiltradaAtual = [];
@@ -848,37 +846,39 @@ function renderizarTabelaFrotaSTU(linhasVisiveis) {
         return;
     }
 
-    // Mapeia tanto ID_LINHA quanto LINHA_CODIGO das linhas ativas
-    const mapaLinhasAtivas = new Map();
+    // 🔎 Indexação Dupla: Mapeia simultaneamente IDs e CÓDIGOS de TODAS as linhas ativas na tela
+    const idsLinhasAtivas = new Set();
     const codigosLinhasAtivas = new Set();
+    const mapaLinhasPorId = new Map();
+    const mapaLinhasPorCod = new Map();
 
     linhasBase.forEach(linha => {
-        const idStr = String(linha.ID_LINHA || linha.id_linha || '');
+        const idStr = String(linha.ID_LINHA || linha.id_linha || '').trim();
         if (idStr && idStr !== 'null' && idStr !== 'undefined') {
-            mapaLinhasAtivas.set(idStr, linha);
+            idsLinhasAtivas.add(idStr);
+            mapaLinhasPorId.set(idStr, linha);
         }
-        const codStr = String(linha.LINHA_CODIGO || linha.linha_codigo || '').toLowerCase();
+        const codStr = String(linha.LINHA_CODIGO || linha.linha_codigo || '').toLowerCase().trim();
         if (codStr && codStr !== 'null' && codStr !== 'undefined') {
             codigosLinhasAtivas.add(codStr);
+            mapaLinhasPorCod.set(codStr, linha);
         }
     });
 
-    // Filtra a lista de veículos associados às linhas visíveis
+    // 🚌 Filtra a frota cruzando qualquer uma das chaves correspondentes
     const frotaFiltrada = dadosBrutosFrotaSTU.filter(veiculo => {
-        const idVeiculoStr = String(veiculo.ID_LINHA || veiculo.id_linha || '');
-        const codVeiculoStr = String(veiculo.CODIGO_LINHA || veiculo.codigo_linha || veiculo.LINHA_CODIGO || veiculo.linha_codigo || '').toLowerCase();
+        const idVeiculoStr = String(veiculo.ID_LINHA || veiculo.id_linha || '').trim();
+        const codVeiculoStr = String(veiculo.CODIGO_LINHA || veiculo.codigo_linha || veiculo.LINHA_CODIGO || veiculo.linha_codigo || '').toLowerCase().trim();
         
-        const pertenceALinha = mapaLinhasAtivas.has(idVeiculoStr) || codigosLinhasAtivas.has(codVeiculoStr);
+        const pertenceALinha = idsLinhasAtivas.has(idVeiculoStr) || codigosLinhasAtivas.has(codVeiculoStr);
 
         if (!pertenceALinha) return false;
 
-        // Se o filtro de veículos elétricos estiver ativo
         if (filtroEletricoAtivo) {
             const comb = (veiculo.TIPO_COMBUSTIVEL || veiculo.tipo_combustivel || veiculo.COMBUSTIVEL || veiculo.combustivel || "").toString().toUpperCase();
             if (!comb.includes("ELÉTRICO") && !comb.includes("ELETRICO")) return false;
         }
 
-        // Se o filtro de vistorias vencidas estiver ativo
         if (filtroVistoriasVencidasAtivo) {
             const vistoria = String(veiculo.SITUACAO_VISTORIA_PICO || veiculo.situacao_vistoria_pico || '').toUpperCase();
             if (!vistoria.includes('VENCIDA')) return false;
@@ -889,14 +889,12 @@ function renderizarTabelaFrotaSTU(linhasVisiveis) {
 
     listaFrotaSTUFiltradaAtual = frotaFiltrada;
 
-    // Se nenhum veículo correspondeu aos critérios
     if (frotaFiltrada.length === 0) {
         tbody.innerHTML = '<tr><td colspan="15" class="text-center text-muted py-3">Nenhum veículo corresponde à seleção atual.</td></tr>';
         zerarCardsFrota();
         return;
     }
 
-    // Recalcula os cards de frota apenas com os veículos filtrados
     calcularECardsFrotaSTU(frotaFiltrada);
 
     let htmlBody = '';
@@ -907,8 +905,11 @@ function renderizarTabelaFrotaSTU(linhasVisiveis) {
             const id_veiculo = item.ID_VEICULO || item.id_veiculo || '-';
             const placa = item.NR_PLACA || item.nr_placa || 'SEM PLACA';
             
-            const idVeiculoStr = String(item.ID_LINHA || item.id_linha || '');
-            const linhaRef = mapaLinhasAtivas.get(idVeiculoStr);
+            const idVeiculoStr = String(item.ID_LINHA || item.id_linha || '').trim();
+            const codVeiculoStr = String(item.LINHA_CODIGO || item.linha_codigo || item.CODIGO_LINHA || item.codigo_linha || '').toLowerCase().trim();
+
+            // Busca a referência da linha no mapa por ID ou por Código
+            const linhaRef = mapaLinhasPorId.get(idVeiculoStr) || mapaLinhasPorCod.get(codVeiculoStr);
             const operadora = item.OPERADORA || item.operadora || (linhaRef ? (linhaRef.OPERADORA || linhaRef.operadora || 'NÃO INFORMADO') : 'NÃO INFORMADO');
 
             const tipoVeiculo = item.TIPO_VEICULO || item.tipo_veiculo || 'NÃO INFORMADO';
@@ -935,7 +936,7 @@ function renderizarTabelaFrotaSTU(linhasVisiveis) {
             const capOfertadaTotal = capVeiculo * qtViagens;
 
             const codigoLinhaExibicao = linhaRef ? (linhaRef.LINHA_CODIGO || linhaRef.linha_codigo || '-') : (item.LINHA_CODIGO || item.linha_codigo || '-');
-            const sentidoExibicao = linhaRef ? (linhaRef.SENTIDO || linhaRef.sentido || '-') : '-';
+            const sentidoExibicao = linhaRef ? (linhaRef.SENTIDO || linhaRef.sentido || '-') : (item.SENTIDO || item.sentido || '-');
 
             veiculosUnicos.add(id_veiculo);
 
