@@ -817,7 +817,8 @@ function renderizarGraficoCombustivelFrota(dadosCombustivel) {
 // =========================================================================
 
 /**
- * Renderiza a tabela de detalhamento da frota física operante com suporte a MÚLTIPLAS LINHAS.
+ * Renderiza a tabela de detalhamento da frota física operante com suporte a MÚLTIPLAS LINHAS,
+ * validando estritamente ID_LINHA/LINHA_CODIGO, SENTIDO e OPERADORA.
  * @param {Array} linhasVisiveis - Lista de linhas atualmente filtradas na tela.
  */
 function renderizarTabelaFrotaSTU(linhasVisiveis) {
@@ -846,40 +847,64 @@ function renderizarTabelaFrotaSTU(linhasVisiveis) {
         return;
     }
 
-    // 🔎 Indexação Dupla: Mapeia simultaneamente IDs e CÓDIGOS de TODAS as linhas ativas na tela
-    const idsLinhasAtivas = new Set();
-    const codigosLinhasAtivas = new Set();
-    const mapaLinhasPorId = new Map();
-    const mapaLinhasPorCod = new Map();
+    // 🔎 Indexação Tripla Estrita: ID_LINHA + SENTIDO + OPERADORA
+    const chavesValidas = new Set();
+    const mapaLinhasPorChave = new Map();
 
     linhasBase.forEach(linha => {
         const idStr = String(linha.ID_LINHA || linha.id_linha || '').trim();
-        if (idStr && idStr !== 'null' && idStr !== 'undefined') {
-            idsLinhasAtivas.add(idStr);
-            mapaLinhasPorId.set(idStr, linha);
-        }
         const codStr = String(linha.LINHA_CODIGO || linha.linha_codigo || '').toLowerCase().trim();
-        if (codStr && codStr !== 'null' && codStr !== 'undefined') {
-            codigosLinhasAtivas.add(codStr);
-            mapaLinhasPorCod.set(codStr, linha);
+        const sentidoStr = String(linha.SENTIDO || linha.sentido || '').toUpperCase().trim();
+        const opStr = String(linha.OPERADORA || linha.operadora || '').toUpperCase().trim();
+
+        if (idStr) {
+            const k1 = `${idStr}|${sentidoStr}|${opStr}`;
+            chavesValidas.add(k1);
+            mapaLinhasPorChave.set(k1, linha);
+
+            const k2 = `${idStr}|${sentidoStr}`;
+            chavesValidas.add(k2);
+            if (!mapaLinhasPorChave.has(k2)) mapaLinhasPorChave.set(k2, linha);
+
+            chavesValidas.add(idStr);
+            if (!mapaLinhasPorChave.has(idStr)) mapaLinhasPorChave.set(idStr, linha);
+        }
+
+        if (codStr) {
+            const k3 = `${codStr}|${sentidoStr}|${opStr}`;
+            chavesValidas.add(k3);
+            mapaLinhasPorChave.set(k3, linha);
+
+            const k4 = `${codStr}|${sentidoStr}`;
+            chavesValidas.add(k4);
+            if (!mapaLinhasPorChave.has(k4)) mapaLinhasPorChave.set(k4, linha);
         }
     });
 
-    // 🚌 Filtra a frota cruzando qualquer uma das chaves correspondentes
+    // 🚌 Filtra a frota validando ID/CÓDIGOS + SENTIDO + OPERADORA
     const frotaFiltrada = dadosBrutosFrotaSTU.filter(veiculo => {
         const idVeiculoStr = String(veiculo.ID_LINHA || veiculo.id_linha || '').trim();
         const codVeiculoStr = String(veiculo.CODIGO_LINHA || veiculo.codigo_linha || veiculo.LINHA_CODIGO || veiculo.linha_codigo || '').toLowerCase().trim();
-        
-        const pertenceALinha = idsLinhasAtivas.has(idVeiculoStr) || codigosLinhasAtivas.has(codVeiculoStr);
+        const sentidoVeiculoStr = String(veiculo.SENTIDO || veiculo.sentido || '').toUpperCase().trim();
+        const opVeiculoStr = String(veiculo.OPERADORA || veiculo.operadora || '').toUpperCase().trim();
+
+        const kIdFull = `${idVeiculoStr}|${sentidoVeiculoStr}|${opVeiculoStr}`;
+        const kIdSentido = `${idVeiculoStr}|${sentidoVeiculoStr}`;
+        const kCodFull = `${codVeiculoStr}|${sentidoVeiculoStr}|${opVeiculoStr}`;
+        const kCodSentido = `${codVeiculoStr}|${sentidoVeiculoStr}`;
+
+        const pertenceALinha = chavesValidas.has(kIdFull) || chavesValidas.has(kCodFull) ||
+                               chavesValidas.has(kIdSentido) || chavesValidas.has(kCodSentido) ||
+                               chavesValidas.has(idVeiculoStr);
 
         if (!pertenceALinha) return false;
 
-        if (filtroEletricoAtivo) {
+        if (typeof filtroEletricoAtivo !== 'undefined' && filtroEletricoAtivo) {
             const comb = (veiculo.TIPO_COMBUSTIVEL || veiculo.tipo_combustivel || veiculo.COMBUSTIVEL || veiculo.combustivel || "").toString().toUpperCase();
             if (!comb.includes("ELÉTRICO") && !comb.includes("ELETRICO")) return false;
         }
 
-        if (filtroVistoriasVencidasAtivo) {
+        if (typeof filtroVistoriasVencidasAtivo !== 'undefined' && filtroVistoriasVencidasAtivo) {
             const vistoria = String(veiculo.SITUACAO_VISTORIA_PICO || veiculo.situacao_vistoria_pico || '').toUpperCase();
             if (!vistoria.includes('VENCIDA')) return false;
         }
@@ -907,11 +932,14 @@ function renderizarTabelaFrotaSTU(linhasVisiveis) {
             
             const idVeiculoStr = String(item.ID_LINHA || item.id_linha || '').trim();
             const codVeiculoStr = String(item.LINHA_CODIGO || item.linha_codigo || item.CODIGO_LINHA || item.codigo_linha || '').toLowerCase().trim();
+            const sentidoVeiculoStr = String(item.SENTIDO || item.sentido || '').toUpperCase().trim();
+            const opVeiculoStr = String(item.OPERADORA || item.operadora || '').toUpperCase().trim();
 
-            // Busca a referência da linha no mapa por ID ou por Código
-            const linhaRef = mapaLinhasPorId.get(idVeiculoStr) || mapaLinhasPorCod.get(codVeiculoStr);
+            const kFull = `${idVeiculoStr}|${sentidoVeiculoStr}|${opVeiculoStr}`;
+            const kCodFull = `${codVeiculoStr}|${sentidoVeiculoStr}|${opVeiculoStr}`;
+            const linhaRef = mapaLinhasPorChave.get(kFull) || mapaLinhasPorChave.get(kCodFull) || mapaLinhasPorChave.get(idVeiculoStr);
+
             const operadora = item.OPERADORA || item.operadora || (linhaRef ? (linhaRef.OPERADORA || linhaRef.operadora || 'NÃO INFORMADO') : 'NÃO INFORMADO');
-
             const tipoVeiculo = item.TIPO_VEICULO || item.tipo_veiculo || 'NÃO INFORMADO';
             const combustivel = item.TIPO_COMBUSTIVEL || item.tipo_combustivel || item.COMBUSTIVEL || item.combustivel || 'DIESEL';
 
@@ -936,7 +964,7 @@ function renderizarTabelaFrotaSTU(linhasVisiveis) {
             const capOfertadaTotal = capVeiculo * qtViagens;
 
             const codigoLinhaExibicao = linhaRef ? (linhaRef.LINHA_CODIGO || linhaRef.linha_codigo || '-') : (item.LINHA_CODIGO || item.linha_codigo || '-');
-            const sentidoExibicao = linhaRef ? (linhaRef.SENTIDO || linhaRef.sentido || '-') : (item.SENTIDO || item.sentido || '-');
+            const sentidoExibicao = item.SENTIDO || item.sentido || (linhaRef ? (linhaRef.SENTIDO || linhaRef.sentido || '-') : '-');
 
             veiculosUnicos.add(id_veiculo);
 
