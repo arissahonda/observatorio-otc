@@ -495,11 +495,15 @@ function atualizarCardsResumo(dados) {
 }
 
 // 11. Tabela Detalhada e Exportação Excel
+// Remove os seletores individuais de gratuidades segregadas
 let colunasOpcionaisMetro = {
-    comumNormal: true, comumInteg: true, vtNormal: true, vtInteg: true,
-    pagantes: true, contactless: true, estudantes: true, pne: true,
-    pneAcomp: true, gratuitos: true, idoso: true, crianca: true,
-    funcionarios: true, violenciaDomestica: true
+    comumNormal: true,
+    comumInteg: true,
+    vtNormal: true,
+    vtInteg: true,
+    pagantes: true,
+    contactless: true,
+    estudantes: true
 };
 
 const CONFIG_COLUNAS_OPCIONAIS_METRO = [
@@ -509,27 +513,8 @@ const CONFIG_COLUNAS_OPCIONAIS_METRO = [
     { chave: 'vtInteg', label: 'VT Integ.' },
     { chave: 'pagantes', label: 'Pagantes' },
     { chave: 'contactless', label: 'Contactless' },
-    { chave: 'estudantes', label: 'Total Estudantes' },
-    { chave: 'pne', label: 'PNE' },
-    { chave: 'pneAcomp', label: 'PNE Acomp.' },
-    { chave: 'gratuitos', label: 'Gratuitos' },
-    { chave: 'idoso', label: 'Idoso' },
-    { chave: 'crianca', label: 'Criança' },
-    { chave: 'funcionarios', label: 'Funcionários' },
-    { chave: 'violenciaDomestica', label: 'Transporte por Elas' }
+    { chave: 'estudantes', label: 'Total Estudantes' }
 ];
-
-window.alternarColunaMetro = function (chave) {
-    if (chave in colunasOpcionaisMetro) {
-        colunasOpcionaisMetro[chave] = !colunasOpcionaisMetro[chave];
-        filtrarDadosEstacaoLocal();
-    }
-};
-
-window.alternarTodasColunasMetro = function (marcarTodas) {
-    Object.keys(colunasOpcionaisMetro).forEach(chave => { colunasOpcionaisMetro[chave] = marcarTodas; });
-    filtrarDadosEstacaoLocal();
-};
 
 function renderizarTabelaCarregamento(dados) {
     let containerTabela = document.getElementById('container-tabela-metro');
@@ -551,13 +536,6 @@ function renderizarTabelaCarregamento(dados) {
             pagantes: somar('pagantes'),
             contactless: somar('contactless'),
             estudantes: somar('total_estudantes'),
-            pne: somar('pne'),
-            pneAcomp: somar('pne_acompanhante'),
-            gratuitos: somar('gratuitos'),
-            idoso: somar('idoso'),
-            crianca: somar('crianca'),
-            funcionarios: somar('funcionarios'),
-            violenciaDomestica: somar('violencia_domestica'),
             totalPagantes: somar('total_pagantes'),
             totalGratuidades: somar('total_gratuidades'),
             totalIntegracoes: somar('total_integracoes'),
