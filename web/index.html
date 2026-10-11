@@ -1200,6 +1200,43 @@
 <script src="js/operacao_teorica_stu.js"></script>
 <script src="js/analise_frota.js"></script>
 <script src="js/metro.js"></script>
+<script>
+    // Exibe o modal de aviso automaticamente assim que a página carrega
+    document.addEventListener('DOMContentLoaded', () => {
+        const modalElemento = document.getElementById('modalAvisoDados');
+        if (modalElemento) {
+            const modalAviso = new bootstrap.Modal(modalElemento);
+            modalAviso.show();
+        }
+    });
+</script>
+
+<!-- MODAL DE AVISO DE DADOS SIMULADOS -->
+<div class="modal fade" id="modalAvisoDados" tabindex="-1" aria-labelledby="modalAvisoLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-warning text-dark border-0">
+                <h5 class="modal-title fw-bold" id="modalAvisoLabel">
+                    ⚠️ Aviso de Demonstração
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body py-4">
+                <p class="mb-2 fs-6 text-secondary">
+                    Este painel é uma ferramenta de prototipagem e demonstração técnica.
+                </p>
+                <div class="alert alert-warning mb-0 border-0 fw-semibold text-dark" style="font-size: 0.9rem;">
+                    📢 <strong>Atenção:</strong> Todos os dados exibidos (linhas, horários, veículos, procura e indicadores) são <strong>sintéticos e amostrais</strong>, não correspondendo aos dados reais da operação de transporte do Distrito Federal (DF).
+                </div>
+            </div>
+            <div class="modal-footer border-0 bg-light">
+                <button type="button" class="btn btn-primary fw-bold w-100" data-bs-dismiss="modal">
+                    Compreendido e Continuar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 </body>
 </html>
