@@ -4,26 +4,27 @@ Este repositório contém a arquitetura da plataforma de dados, pipeline de ETL 
 
 ```text
 .
-├── css/
-│   └── estilos.css           # Estilos customizados e responsivos da interface web
-├── js/
-│   ├── analise_frota.js      # Módulo de gestão, vistorias e gráficos da frota operante
-│   ├── camadas_apoio.js      # Gerenciamento de camadas espaciais GIS (RAs, pontos, terminais)
-│   ├── exportacao_excel.js   # Utilitário para exportação de tabelas em relatórios .xlsx
-│   ├── funcoes_tabela.js     # Funções de manipulação e renderização das tabelas dinâmicas
-│   ├── mapa_base.js          # Inicialização, interações e controles do mapa Leaflet
-│   ├── metro.js              # Módulo de análise e gráficos do transporte metroviário
-│   ├── operacao_teorica_stu.js # Módulo de acompanhamento de indicadores teóricos
-│   ├── plan_hoje.js          # Módulo de mapeamento do planejamento operacional do dia
-│   ├── plan_ope_stu.js       # Módulo de análise de desempenho Planejado vs. Operado
-│   └── web_config.js         # Configurações globais e definição das URLs da API
-├── scripts/
-│   └── mask_metro_amostra.py # Pipeline de ETL, mascaramento sintético e carga no Supabase
-├── index.html                # Interface web principal (Dashboard Single Page Application)
-├── main_api.py               # Servidor da API RESTful desenvolvido em FastAPI
-├── credenciais.env           # Variáveis de ambiente e conexões (oculto / ignorado no .gitignore)
-├── requirements.txt          # Dependências do ecossistema Python
-└── README.md                 # Documentação técnica do projeto
+├── api/
+│   └── main_api.py           # Servidor da API RESTful desenvolvido em FastAPI
+├── web/
+│   ├── css/
+│   │   └── estilos.css       # Estilos customizados e responsivos da interface web
+│   ├── js/
+│   │   ├── analise_frota.js         # Módulo de gestão e gráficos da frota
+│   │   ├── camadas_apoio.js         # Gerenciamento de camadas espaciais GIS
+│   │   ├── exportacao_excel.js      # Utilitário para exportação de relatórios .xlsx
+│   │   ├── funcoes_tabela.js        # Manipulação e renderização de tabelas
+│   │   ├── mapa_base.js             # Inicialização e interações do mapa Leaflet
+│   │   ├── metro.js                 # Módulo do transporte metroviário
+│   │   ├── operacao_teorica_stu.js  # Acompanhamento de indicadores teóricos
+│   │   ├── plan_hoje.js             # Mapeamento do planejamento operacional do dia
+│   │   ├── plan_ope_stu.js          # Análise de desempenho Planejado vs. Operado
+│   │   └── web_config.js            # Definição das URLs da API e configurações
+│   └── index.html            # Interface web principal (Dashboard Single Page Application)
+├── .gitignore                # Arquivo de regras para exclusão de arquivos sensíveis
+├── LICENSE                   # Licença do projeto
+├── README.md                 # Documentação técnica do projeto
+└── requirements.txt          # Dependências do ecossistema Python
 ```
 ---
 ## ⚙️ Arquitetura e Engenharia do Pipeline de ETL
