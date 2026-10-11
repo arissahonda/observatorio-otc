@@ -167,9 +167,10 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # Origens que têm permissão de consultar a API
 origens_permitidas = [
-    "http://127.0.0.1:5500",                  # Seu Live Server local
-    "http://localhost:5500",                  # Seu Live Server (endereço alternativo)
-    "https://arissahonda.github.io"           # URL pública do seu painel no GitHub Pages
+    "http://127.0.0.1:5500",           
+    "http://localhost:5500",                 
+    "https://arissahonda.github.io"  
+    "https://observatorio-otc-web.vercel.app/"
 ]
 
 app.add_middleware(
