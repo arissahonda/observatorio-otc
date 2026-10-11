@@ -817,9 +817,8 @@ function renderizarGraficoCombustivelFrota(dadosCombustivel) {
 // =========================================================================
 
 /**
- * Renderiza a tabela de detalhamento da frota física operante com suporte a MÚLTIPLAS LINHAS,
- * validando estritamente ID_LINHA/LINHA_CODIGO, SENTIDO e OPERADORA.
- * @param {Array} linhasVisiveis - Lista de linhas atualmente filtradas na tela.
+ * Renderiza a tabela de detalhamento da frota física com cruzamento estrito por CHAVE_VINCULO.
+ * @param {Array} linhasVisiveis - Lista de linhas atualmente visíveis na tabela macro.
  */
 function renderizarTabelaFrotaSTU(linhasVisiveis) {
     const tbody = document.getElementById("corpo-tabela-frota-stu") || 
@@ -831,76 +830,43 @@ function renderizarTabelaFrotaSTU(linhasVisiveis) {
     
     if (!tbody) return;
 
-    if (typeof filtroNaoOperadoAtivo !== 'undefined' && filtroNaoOperadoAtivo) {
-        tbody.innerHTML = '<tr><td colspan="15" class="text-center text-muted py-3">🚫 Nenhuma frota operou nas linhas selecionadas.</td></tr>';
-        listaFrotaSTUFiltradaAtual = [];
-        zerarCardsFrota();
-        return;
-    }
-
-    const linhasBase = (linhasVisiveis && Array.isArray(linhasVisiveis)) ? linhasVisiveis : dadosBrutosHistorico;
-
-    if (!dadosBrutosFrotaSTU || dadosBrutosFrotaSTU.length === 0 || !linhasBase || linhasBase.length === 0) {
+    // Se nenhuma linha estiver selecionada na tabela macro, exibe 0 veículos!
+    if (!linhasVisiveis || !Array.isArray(linhasVisiveis) || linhasVisiveis.length === 0) {
         tbody.innerHTML = '<tr><td colspan="15" class="text-center text-muted py-3">Nenhum veículo associado às linhas selecionadas.</td></tr>';
-        listaFrotaSTUFiltradaAtual = [];
-        zerarCardsFrota();
+        if (badgeTotal) badgeTotal.innerText = 'Veículos: 0';
+        if (btnExcel) btnExcel.disabled = true;
         return;
     }
 
-    // 🔎 Indexação Tripla Estrita: ID_LINHA + SENTIDO + OPERADORA
-    const chavesValidas = new Set();
-    const mapaLinhasPorChave = new Map();
-
-    linhasBase.forEach(linha => {
-        const idStr = String(linha.ID_LINHA || linha.id_linha || '').trim();
-        const codStr = String(linha.LINHA_CODIGO || linha.linha_codigo || '').toLowerCase().trim();
-        const sentidoStr = String(linha.SENTIDO || linha.sentido || '').toUpperCase().trim();
-        const opStr = String(linha.OPERADORA || linha.operadora || '').toUpperCase().trim();
-
-        if (idStr) {
-            const k1 = `${idStr}|${sentidoStr}|${opStr}`;
-            chavesValidas.add(k1);
-            mapaLinhasPorChave.set(k1, linha);
-
-            const k2 = `${idStr}|${sentidoStr}`;
-            chavesValidas.add(k2);
-            if (!mapaLinhasPorChave.has(k2)) mapaLinhasPorChave.set(k2, linha);
-
-            chavesValidas.add(idStr);
-            if (!mapaLinhasPorChave.has(idStr)) mapaLinhasPorChave.set(idStr, linha);
-        }
-
-        if (codStr) {
-            const k3 = `${codStr}|${sentidoStr}|${opStr}`;
-            chavesValidas.add(k3);
-            mapaLinhasPorChave.set(k3, linha);
-
-            const k4 = `${codStr}|${sentidoStr}`;
-            chavesValidas.add(k4);
-            if (!mapaLinhasPorChave.has(k4)) mapaLinhasPorChave.set(k4, linha);
+    // Criar conjunto de chaves únicas selecionadas na tabela macro
+    const chavesMacroAtivas = new Set();
+    linhasVisiveis.forEach(linha => {
+        const idLinha = String(linha.ID_LINHA || linha.id_linha || '').trim();
+        const sentido = String(linha.SENTIDO || linha.sentido || '').toUpperCase().trim();
+        const dataPico = String(linha.DATA_PICO || linha.data_pico || '').trim();
+        
+        const chaveDireta = String(linha.CHAVE_VINCULO || linha.chave_vinculo || '').trim();
+        if (chaveDireta) {
+            chavesMacroAtivas.add(chaveDireta);
+        } else if (idLinha && sentido && dataPico) {
+            chavesMacroAtivas.add(`${idLinha}_${sentido}_${dataPico}`);
         }
     });
 
-    // 🚌 Filtra a frota validando ID/CÓDIGOS + SENTIDO + OPERADORA
-    const frotaFiltrada = dadosBrutosFrotaSTU.filter(veiculo => {
-        const idVeiculoStr = String(veiculo.ID_LINHA || veiculo.id_linha || '').trim();
-        const codVeiculoStr = String(veiculo.CODIGO_LINHA || veiculo.codigo_linha || veiculo.LINHA_CODIGO || veiculo.linha_codigo || '').toLowerCase().trim();
-        const sentidoVeiculoStr = String(veiculo.SENTIDO || veiculo.sentido || '').toUpperCase().trim();
-        const opVeiculoStr = String(veiculo.OPERADORA || veiculo.operadora || '').toUpperCase().trim();
-
-        const kIdFull = `${idVeiculoStr}|${sentidoVeiculoStr}|${opVeiculoStr}`;
-        const kIdSentido = `${idVeiculoStr}|${sentidoVeiculoStr}`;
-        const kCodFull = `${codVeiculoStr}|${sentidoVeiculoStr}|${opVeiculoStr}`;
-        const kCodSentido = `${codVeiculoStr}|${sentidoVeiculoStr}`;
-
-        const pertenceALinha = chavesValidas.has(kIdFull) || chavesValidas.has(kCodFull) ||
-                               chavesValidas.has(kIdSentido) || chavesValidas.has(kCodSentido) ||
-                               chavesValidas.has(idVeiculoStr);
-
-        if (!pertenceALinha) return false;
+    // Filtrar a frota estritamente pelas chaves ativas
+    const frotaFiltrada = (dadosBrutosFrotaSTU || []).filter(veiculo => {
+        const idLinhaV = String(veiculo.ID_LINHA || veiculo.id_linha || '').trim();
+        const sentidoV = String(veiculo.SENTIDO || veiculo.sentido || '').toUpperCase().trim();
+        const dataV = String(veiculo.DATA_REFERENCIA || veiculo.data_referencia || veiculo.DATA_PICO || veiculo.data_pico || '').trim();
+        
+        const chaveV = String(veiculo.CHAVE_VINCULO || veiculo.chave_vinculo || '').trim();
+        
+        const pertenceASelecao = chavesMacroAtivas.has(chaveV) || chavesMacroAtivas.has(`${idLinhaV}_${sentidoV}_${dataV}`);
+        
+        if (!pertenceASelecao) return false;
 
         if (typeof filtroEletricoAtivo !== 'undefined' && filtroEletricoAtivo) {
-            const comb = (veiculo.TIPO_COMBUSTIVEL || veiculo.tipo_combustivel || veiculo.COMBUSTIVEL || veiculo.combustivel || "").toString().toUpperCase();
+            const comb = (veiculo.TIPO_COMBUSTIVEL || veiculo.tipo_combustivel || "").toString().toUpperCase();
             if (!comb.includes("ELÉTRICO") && !comb.includes("ELETRICO")) return false;
         }
 
@@ -914,36 +880,32 @@ function renderizarTabelaFrotaSTU(linhasVisiveis) {
 
     listaFrotaSTUFiltradaAtual = frotaFiltrada;
 
+    // Se a busca resultar em zero veículos, exibe zero (sem acionar fallback de todos os veículos)
     if (frotaFiltrada.length === 0) {
         tbody.innerHTML = '<tr><td colspan="15" class="text-center text-muted py-3">Nenhum veículo corresponde à seleção atual.</td></tr>';
-        zerarCardsFrota();
+        if (badgeTotal) badgeTotal.innerText = 'Veículos: 0';
+        if (btnExcel) btnExcel.disabled = true;
         return;
     }
 
-    calcularECardsFrotaSTU(frotaFiltrada);
+    if (typeof calcularECardsFrotaSTU === 'function') {
+        calcularECardsFrotaSTU(frotaFiltrada);
+    }
 
     let htmlBody = '';
     const veiculosUnicos = new Set();
 
     frotaFiltrada.forEach(item => {
         try {
-            const id_veiculo = item.ID_VEICULO || item.id_veiculo || '-';
+            const id_veiculo = item.ID_VEICULO || item.id_veiculo || item.PREFIXO || item.prefixo || '-';
             const placa = item.NR_PLACA || item.nr_placa || 'SEM PLACA';
-            
-            const idVeiculoStr = String(item.ID_LINHA || item.id_linha || '').trim();
-            const codVeiculoStr = String(item.LINHA_CODIGO || item.linha_codigo || item.CODIGO_LINHA || item.codigo_linha || '').toLowerCase().trim();
-            const sentidoVeiculoStr = String(item.SENTIDO || item.sentido || '').toUpperCase().trim();
-            const opVeiculoStr = String(item.OPERADORA || item.operadora || '').toUpperCase().trim();
+            const operadora = item.OPERADORA || item.operadora || 'NÃO INFORMADO';
+            const codigoLinhaExibicao = item.LINHA_CODIGO || item.linha_codigo || item.CODIGO_LINHA || item.codigo_linha || '-';
+            const sentidoExibicao = item.SENTIDO || item.sentido || '-';
+            const tipoVeiculo = item.TIPO_VEICULO || item.tipo_veiculo || 'ÔNIBUS BÁSICO';
+            const combustivel = item.TIPO_COMBUSTIVEL || item.tipo_combustivel || 'DIESEL';
 
-            const kFull = `${idVeiculoStr}|${sentidoVeiculoStr}|${opVeiculoStr}`;
-            const kCodFull = `${codVeiculoStr}|${sentidoVeiculoStr}|${opVeiculoStr}`;
-            const linhaRef = mapaLinhasPorChave.get(kFull) || mapaLinhasPorChave.get(kCodFull) || mapaLinhasPorChave.get(idVeiculoStr);
-
-            const operadora = item.OPERADORA || item.operadora || (linhaRef ? (linhaRef.OPERADORA || linhaRef.operadora || 'NÃO INFORMADO') : 'NÃO INFORMADO');
-            const tipoVeiculo = item.TIPO_VEICULO || item.tipo_veiculo || 'NÃO INFORMADO';
-            const combustivel = item.TIPO_COMBUSTIVEL || item.tipo_combustivel || item.COMBUSTIVEL || item.combustivel || 'DIESEL';
-
-            const anoFabricacao = parseInt(item.ANO_FABRICACAO || item.ano_fabricacao || item.ANO_VEICULO || item.ano_veiculo || 0, 10);
+            const anoFabricacao = parseInt(item.ANO_FABRICACAO || item.ano_fabricacao || 0, 10);
             const idadeDireta = parseInt(item.IDADE_VEICULO || item.idade_veiculo || 0, 10);
             
             let idadeFormatada = '-';
@@ -954,17 +916,14 @@ function renderizarTabelaFrotaSTU(linhasVisiveis) {
                 idadeFormatada = `${idadeCalculada} ano${idadeCalculada !== 1 ? 's' : ''}`;
             }
 
-            const statusPermissao = item.STATUS_PERMISSAO || item.status_permissao || '-';
+            const statusPermissao = item.STATUS_PERMISSAO || item.status_permissao || 'ATIVO';
             const situacaoVistoria = String(item.SITUACAO_VISTORIA_PICO || item.situacao_vistoria_pico || 'SEM REGISTRO');
             
-            const capVeiculo = parseInt(item.CAPACIDADE_FINAL || item.capacidade_final || 0, 10);
-            const qtViagens = parseInt(item.QT_VIAGENS || item.qt_viagens || 0, 10);
+            const capVeiculo = parseInt(item.CAPACIDADE_FINAL || item.capacidade_final || item.CAPACIDADE_VEICULO || item.capacidade_veiculo || 89, 10);
+            const qtViagens = parseInt(item.QT_VIAGENS || item.qt_viagens || 1, 10);
             const qtPassageiros = parseInt(item.QT_PASSAGEIROS || item.qt_passageiros || 0, 10);
             const kmEstimada = parseFloat(item.KM_ESTIMADO_VEICULO || item.km_estimado_veiculo || 0);
             const capOfertadaTotal = capVeiculo * qtViagens;
-
-            const codigoLinhaExibicao = linhaRef ? (linhaRef.LINHA_CODIGO || linhaRef.linha_codigo || '-') : (item.LINHA_CODIGO || item.linha_codigo || '-');
-            const sentidoExibicao = item.SENTIDO || item.sentido || (linhaRef ? (linhaRef.SENTIDO || linhaRef.sentido || '-') : '-');
 
             veiculosUnicos.add(id_veiculo);
 
@@ -996,8 +955,8 @@ function renderizarTabelaFrotaSTU(linhasVisiveis) {
                     <td>${kmFormatada}</td>
                 </tr>
             `;
-        } catch (erroLoop) {
-            console.error("⚠️ Erro ao processar veículo da frota STU:", erroLoop);
+        } catch (err) {
+            console.error("⚠️ Erro ao renderizar veículo:", err);
         }
     });
 
