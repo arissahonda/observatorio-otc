@@ -1,7 +1,32 @@
 Este repositório contém a arquitetura da plataforma de dados, pipeline de ETL e dashboards para análise de indicadores de mobilidade e transporte público.
-
 ---
+## 📁 Estrutura de Pastas do Projeto
 
+```text
+.
+├── api/
+│   └── main_api.py           # Servidor da API RESTful desenvolvido em FastAPI
+├── web/
+│   ├── css/
+│   │   └── estilos.css       # Estilos customizados e responsivos da interface web
+│   ├── js/
+│   │   ├── analise_frota.js         # Módulo de gestão e gráficos da frota
+│   │   ├── camadas_apoio.js         # Gerenciamento de camadas espaciais GIS
+│   │   ├── exportacao_excel.js      # Utilitário para exportação de relatórios .xlsx
+│   │   ├── funcoes_tabela.js        # Manipulação e renderização de tabelas
+│   │   ├── mapa_base.js             # Inicialização e interações do mapa Leaflet
+│   │   ├── metro.js                 # Módulo do transporte metroviário
+│   │   ├── operacao_teorica_stu.js  # Acompanhamento de indicadores teóricos
+│   │   ├── plan_hoje.js             # Mapeamento do planejamento operacional do dia
+│   │   ├── plan_ope_stu.js          # Análise de desempenho Planejado vs. Operado
+│   │   └── web_config.js            # Definição das URLs da API e configurações
+│   └── index.html            # Interface web principal (Dashboard Single Page Application)
+├── .gitignore                # Arquivo de regras para exclusão de arquivos sensíveis
+├── LICENSE                   # Licença do projeto
+├── README.md                 # Documentação técnica do projeto
+└── requirements.txt          # Dependências do ecossistema Python
+```
+---
 ## ⚙️ Arquitetura e Engenharia do Pipeline de ETL
 
 A plataforma utiliza um pipeline automatizado de extração, transformação, enriquecimento espacial e carga (ETL), projetado sob o conceito de **Tabelas de Snapshot e Histórico Incremental**.
@@ -90,12 +115,14 @@ Cada registro consolidado passa por um módulo de verificação de integridade e
 O pipeline calcula mais de 50 indicadores operacionais e financeiros, divididos em visões completas e por faixa horária (30 minutos):
 * **Oferta e Demanda**: Lugares Ofertados, Quilometragem Operada, IPK (Passageiros por Quilômetro) e IRP (Índice de Renovação de Passageiros).
 * **Apropriação Financeira**: Arrecadação Tarifária, Custo do Serviço, Tarifa Técnica Vigente e Valor Estimado de Subsídio.
-
+---
 ## 🛠️ Tecnologias Utilizadas
 
 * **Linguagem**: Python 3.12
 * **Banco de Dados**: PostgreSQL 15+ / PostGIS hospedado no Supabase
-* **Bibliotecas**: Pandas, GeoPandas, SQLAlchemy, Psycopg2, Streamlit e FastAPI
+* **Backend e API**: FastAPI, SQLAlchemy, Uvicorn, Psycopg2
+* **Engenharia de Dados e ETL**: Pandas, GeoPandas, Shapely
+* **Frontend**: HTML5, CSS3, JavaScript (ES6+), Bootstrap 5, Leaflet.js, Chart.js, SheetJS (XLSX)
 
 ## ⚖️ Aviso Legal e Isenção de Responsabilidade (Disclaimer)
 
