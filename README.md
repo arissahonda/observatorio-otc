@@ -91,6 +91,35 @@ O pipeline calcula mais de 50 indicadores operacionais e financeiros, divididos 
 * **Oferta e Demanda**: Lugares Ofertados, Quilometragem Operada, IPK (Passageiros por Quilômetro) e IRP (Índice de Renovação de Passageiros).
 * **Apropriação Financeira**: Arrecadação Tarifária, Custo do Serviço, Tarifa Técnica Vigente e Valor Estimado de Subsídio.
 
+Este repositório contém a arquitetura da plataforma de dados, pipeline de ETL, API RESTful e dashboards para análise de indicadores de mobilidade e transporte público.
+
+---
+
+## 📁 Estrutura de Pastas do Projeto
+
+```text
+.
+├── css/
+│   └── estilos.css           # Estilos customizados e responsivos da interface web
+├── js/
+│   ├── analise_frota.js      # Módulo de gestão, vistorias e gráficos da frota operante
+│   ├── camadas_apoio.js      # Gerenciamento de camadas espaciais GIS (RAs, pontos, terminais)
+│   ├── exportacao_excel.js   # Utilitário para exportação de tabelas em relatórios .xlsx
+│   ├── funcoes_tabela.js     # Funções de manipulação e renderização das tabelas dinâmicas
+│   ├── mapa_base.js          # Inicialização, interações e controles do mapa Leaflet
+│   ├── metro.js              # Módulo de análise e gráficos do transporte metroviário
+│   ├── operacao_teorica_stu.js # Módulo de acompanhamento de indicadores teóricos
+│   ├── plan_hoje.js          # Módulo de mapeamento do planejamento operacional do dia
+│   ├── plan_ope_stu.js       # Módulo de análise de desempenho Planejado vs. Operado
+│   └── web_config.js         # Configurações globais e definição das URLs da API
+├── scripts/
+│   └── mask_metro_amostra.py # Pipeline de ETL, mascaramento sintético e carga no Supabase
+├── index.html                # Interface web principal (Dashboard Single Page Application)
+├── main_api.py               # Servidor da API RESTful desenvolvido em FastAPI
+├── credenciais.env           # Variáveis de ambiente e conexões (oculto / ignorado no .gitignore)
+├── requirements.txt          # Dependências do ecossistema Python
+└── README.md                 # Documentação técnica do projeto
+
 ## 🛠️ Tecnologias Utilizadas
 
 * **Linguagem**: Python 3.12
