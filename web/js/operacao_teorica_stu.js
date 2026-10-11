@@ -7,7 +7,7 @@
 
 const URL_API_TEORICA = API_URL;
 
-// 1. DICIONÁRIO COMPLETO DE RÓTULOS (INCLUINDO PERCENTUAIS E PADRONIZAÇÃO DE GEOMETRIA)
+// 1. DICIONÁRIO COMPLETO DE RÓTULOS
 const ROTULOS_TEORICA = {
     'LINHA_CODIGO': 'Linha',
     'LINHA_DENOMINACAO': 'Denominação',
@@ -122,6 +122,7 @@ let camadaTeoricaLinhas = null;
 let dadosBrutosTeoricaSTU = [];
 let listaTeoricaFiltradaAtual = [];
 let filtroApenasInconsistentesTeorica = false;
+let filtroSemCarregamentoTeorica = false;
 let graficoAnualTeoricaInstance = null;
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -277,7 +278,13 @@ function aplicarFiltrosTeoricaSTU() {
             bateuInconsistencia = motivo !== '' && motivo !== 'OK' && motivo !== 'NULL' && motivo !== 'UNDEFINED';
         }
 
-        return bateuTexto && bateuOperadora && bateuInconsistencia;
+        let bateuSemCarregamento = true;
+        if (filtroSemCarregamentoTeorica) {
+            const pass = parseInt(item.TOTAL_PASSAGEIROS ?? item.total_passageiros ?? 0, 10);
+            bateuSemCarregamento = (pass === 0);
+        }
+
+        return bateuTexto && bateuOperadora && bateuInconsistencia && bateuSemCarregamento;
     });
 
     const dataSelecionada = document.getElementById('select-data-teorica-stu')?.value || '';
@@ -295,13 +302,49 @@ function limparFiltrosTeoricaSTU() {
     if (inputTexto) inputTexto.value = "";
     if (selectOp) selectOp.value = "";
     filtroApenasInconsistentesTeorica = false;
+    filtroSemCarregamentoTeorica = false;
+
+    const subtextoSemCarga = document.getElementById('subtexto-sem-carregamento-teorica-stu');
+    if (subtextoSemCarga) subtextoSemCarga.innerText = "Linhas teóricas sem registro de passageiros.";
+
+    const subtextoIncons = document.getElementById('subtexto-inconsistencia-teorica-stu');
+    if (subtextoIncons) subtextoIncons.innerText = "Linhas com pendência de geometria.";
 
     aplicarFiltrosTeoricaSTU();
 }
 
 function filtrarLinhasInconsistentesTeoricaSTU() {
     filtroApenasInconsistentesTeorica = !filtroApenasInconsistentesTeorica;
+    filtroSemCarregamentoTeorica = false;
+
+    const subtexto = document.getElementById('subtexto-inconsistencia-teorica-stu');
+    if (subtexto) {
+        subtexto.innerHTML = filtroApenasInconsistentesTeorica 
+            ? "<b>Filtrando:</b> erros de cadastro/geometria. (Clique p/ limpar)"
+            : "Linhas com pendência de geometria.";
+    }
+
     aplicarFiltrosTeoricaSTU();
+
+    const tabelaEl = document.getElementById('titulo-tabela-teorica-stu');
+    if (tabelaEl) tabelaEl.scrollIntoView({ behavior: 'smooth' });
+}
+
+function filtrarLinhasSemCarregamentoTeoricaSTU() {
+    filtroSemCarregamentoTeorica = !filtroSemCarregamentoTeorica;
+    filtroApenasInconsistentesTeorica = false;
+
+    const subtexto = document.getElementById('subtexto-sem-carregamento-teorica-stu');
+    if (subtexto) {
+        subtexto.innerHTML = filtroSemCarregamentoTeorica 
+            ? "<b>Filtrando:</b> linhas sem passageiros. (Clique p/ limpar)"
+            : "Linhas teóricas sem registro de passageiros.";
+    }
+
+    aplicarFiltrosTeoricaSTU();
+
+    const tabelaEl = document.getElementById('titulo-tabela-teorica-stu');
+    if (tabelaEl) tabelaEl.scrollIntoView({ behavior: 'smooth' });
 }
 
 function filtrarPorAreaTeoricaSTU(bounds) {
@@ -326,18 +369,10 @@ function filtrarPorAreaTeoricaSTU(bounds) {
     preencherTabelaTeoricaSTU(linhasFiltradas, dataSelecionada);
 }
 
-/**
- * Limpa a seleção espacial do mapa na Operação Teórica (STU)
- * e reseta o campo de filtro por itinerário.
- */
 function limparSelecaoAreaTeoricaSTU() {
-    // 1. Localiza o campo de entrada do filtro por itinerário e limpa o texto digitado
     const inputTexto = document.getElementById("input-filtrar-linha-teorica-stu");
-    if (inputTexto) {
-        inputTexto.value = "";
-    }
+    if (inputTexto) inputTexto.value = "";
 
-    // 2. Restaura o estilo visual padrão de todas as linhas desenhadas no mapa
     if (camadaTeoricaLinhas) {
         camadaTeoricaLinhas.eachLayer(layer => {
             layer.setStyle({ 
@@ -348,10 +383,9 @@ function limparSelecaoAreaTeoricaSTU() {
         });
     }
 
-    // 3. Reseta a variável de controle de inconsistências (caso esteja ativa)
     filtroApenasInconsistentesTeorica = false;
+    filtroSemCarregamentoTeorica = false;
 
-    // 4. Executa a função central de filtros para atualizar o mapa e a tabela sincronizados
     aplicarFiltrosTeoricaSTU();
 }
 
@@ -467,7 +501,7 @@ function preencherTabelaTeoricaSTU(lista, dataStr) {
             } else if (['IPK', 'IRP', 'HW_OPERADOR', 'HW_PASSAGEIRO', 'VELOCIDADE_MEDIA'].includes(col)) {
                 const num = parseFloat(val);
                 val = !isNaN(num) ? num.toFixed(2).replace('.', ',') : '-';
-            } else if (['TOTAL_PASSAGEIROS', 'TOTAL_PAGANTES', 'TOTAL_GRATUIDADES', 'TOTAL_ESTUDANTES', 'TOTAL_INTEGRACOES', 'LUGARES_OFERTADOS', 'VIAGENS_PLANEJADAS', 'FROTA_PLANEJADA'].includes(col)) {
+            } else if (['TOTAL_PASSAGEIROS', 'TOTAL_PAGANTES', 'TOTAL_GRATUIDADES', 'TOTAL_ESTUDANTES', 'TOTAL_INTEGRACOES', 'LUGARES_OFERTADOS', 'VIAGENS_PLANEJADAS', 'FROTA_ALOCADA', 'FROTA_REAPROVEITADA'].includes(col)) {
                 const num = parseInt(val, 10);
                 val = !isNaN(num) ? num.toLocaleString('pt-BR') : '-';
             } else if (['EXTENSAO_KM', 'KM_DIA', 'KM_MES', 'KM_ANO'].includes(col)) {
@@ -525,13 +559,10 @@ function calcularECardsTeoricaSTU(dados) {
     setT('card-demanda-oferta-teorica-stu', demandaOfertaPerc.toFixed(1).replace('.', ',') + '%');
 }
 
-// =========================================================================
 // 8. DIAGNÓSTICOS E RANKINGS (OPERAÇÃO TEÓRICA)
-// =========================================================================
 function preencherRankingsEDiagnosticosTeorica(dados) {
     if (!dados || dados.length === 0) return;
 
-    // Função auxiliar para formatar 'Linha {CODIGO} ({SENTIDO})'
     const formatarLinhaESentido = (item) => {
         const cod = item.LINHA_CODIGO || item.linha_codigo || '-';
         const sentido = item.SENTIDO || item.sentido || '';
@@ -597,7 +628,7 @@ function preencherRankingsEDiagnosticosTeorica(dados) {
     }
 }
 
-// 9. GERADOR E SELETOR DE CHECKBOXES DO ACORDEÃO LATERAL (COM SELEÇÃO POR GRUPO)
+// 9. GERADOR E SELETOR DE CHECKBOXES DO ACORDEÃO LATERAL
 function gerarCheckboxesAcordeaoTeoricaSTU() {
     Object.keys(COLUNAS_TEORICA_GRUPO).forEach(idGrupo => {
         const idTarget = idGrupo + "-teorica-stu";
