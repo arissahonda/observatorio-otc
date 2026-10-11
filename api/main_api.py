@@ -169,8 +169,8 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 origens_permitidas = [
     "http://127.0.0.1:5500",           
     "http://localhost:5500",                 
-    "https://arissahonda.github.io",  
-    "https://observatorio-otc-web.vercel.app/"
+    "https://arissahonda.github.io",
+    "https://observatorio-otc-web.vercel.app"
 ]
 
 app.add_middleware(
