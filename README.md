@@ -119,7 +119,7 @@ Este repositório contém a arquitetura da plataforma de dados, pipeline de ETL,
 ├── credenciais.env           # Variáveis de ambiente e conexões (oculto / ignorado no .gitignore)
 ├── requirements.txt          # Dependências do ecossistema Python
 └── README.md                 # Documentação técnica do projeto
-
+```
 ## 🛠️ Tecnologias Utilizadas
 
 * **Linguagem**: Python 3.12
